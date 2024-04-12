@@ -1,1 +1,1 @@
-package mapgen
+package mapGen

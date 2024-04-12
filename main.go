@@ -7,11 +7,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
-	mapgen "github.com/shreyghildiyal/spacemapGenerator/mapGen"
+	"github.com/shreyghildiyal/spacemapGenerator/mapGen"
 )
 
 type Game struct {
-	stars []mapgen.Location
+	stars []mapGen.Location
 }
 
 func (g *Game) Update() error {
@@ -53,7 +53,7 @@ func main() {
 
 	game := Game{}
 
-	stars, _, err := mapgen.InitMap(mapgen.MapGenConfigs{
+	stars, _, err := mapGen.InitMap(mapGen.MapGenConfigs{
 		MaxX:                    WIDTH,
 		MaxY:                    HEIGHT,
 		StarCount:               600,

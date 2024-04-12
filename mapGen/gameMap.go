@@ -1,4 +1,4 @@
-package mapgen
+package mapGen
 
 import (
 	"errors"
