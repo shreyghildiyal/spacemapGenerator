@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 	"log"
 
@@ -11,7 +12,8 @@ import (
 )
 
 type Game struct {
-	stars []mapGen.Location
+	stars          []mapGen.Location
+	clusterColours []color.RGBA
 }
 
 func (g *Game) Update() error {
@@ -19,21 +21,18 @@ func (g *Game) Update() error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	ebitenutil.DebugPrint(screen, "Hello, World!")
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Hello, World!, %d, %d\n", screen.Bounds().Max.X, screen.Bounds().Max.Y), 0, 0)
 
-	var RED = color.RGBA{
-		R: 200,
-		G: 0,
-		B: 0,
-		A: 0,
-	}
+	debugY := 20
 
 	for _, star := range g.stars {
 		if star.IsClusterCore {
 			// vector.DrawFilledCircle(screen, float32(star.X), float32(star.Y), 2, RED, true)
-			vector.DrawFilledRect(screen, float32(star.X)-4, float32(star.Y)-4, 8, 8, RED, true)
+			vector.DrawFilledRect(screen, float32(star.X)-4, float32(star.Y)-4, 8, 8, g.clusterColours[star.ClusterId], true)
+			// ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Id: %d, X: %f, Y: %f\n", star.Id, star.X, star.Y), 0, debugY)
+			debugY += 20
 		} else {
-			vector.DrawFilledCircle(screen, float32(star.X), float32(star.Y), 2, color.White, true)
+			vector.DrawFilledCircle(screen, float32(star.X), float32(star.Y), 2, g.clusterColours[star.ClusterId], true)
 		}
 
 	}
@@ -53,20 +52,29 @@ func main() {
 
 	game := Game{}
 
+	starCount := 600
+	clusterCount := 25
+
 	stars, _, err := mapGen.InitMap(mapGen.MapGenConfigs{
-		MaxX:                    WIDTH,
-		MaxY:                    HEIGHT,
-		StarCount:               600,
-		ClusterCount:            20,
-		StartRepulsionFactor:    50,
-		ClusterAttractionFactor: 0.95,
+		MaxX:                    WIDTH - 50,
+		MaxY:                    HEIGHT - 50,
+		StarCount:               starCount,
+		ClusterCount:            clusterCount,
+		StarRepulsionFactor:     5,
+		ClusterAttractionFactor: 0.50,
+		Iterations:              50,
+		Seed:                    5,
 	})
+
 	if err != nil {
 		log.Fatal("There was an error in creating the stars", err.Error())
 		return
 	} else {
 		game.stars = stars
 	}
+
+	game.clusterColours = mapGen.GetClusterColours(clusterCount)
+
 	if err := ebiten.RunGame(&game); err != nil {
 		log.Fatal(err)
 	}

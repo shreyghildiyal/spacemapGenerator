@@ -2,6 +2,8 @@ package mapGen
 
 import (
 	"errors"
+	"fmt"
+	"math"
 
 	"image/color"
 	"math/rand"
@@ -25,13 +27,19 @@ type MapGenConfigs struct {
 	MaxY                    float64
 	StarCount               int
 	ClusterCount            int
-	StartRepulsionFactor    float64
+	StarRepulsionFactor     float64
 	ClusterAttractionFactor float64
+	Iterations              int
+	Seed                    int64
 }
 
 // var gameMap []Location
 
 func InitMap(configs MapGenConfigs) ([]Location, []Cluster, error) {
+
+	// rand.Seed(configs.Seed)
+
+	rand.New(rand.NewSource(configs.Seed))
 
 	if configs.ClusterCount > configs.StarCount {
 		return nil, nil, errors.New("the cluster count cant be greater than star count")
@@ -44,24 +52,174 @@ func InitMap(configs MapGenConfigs) ([]Location, []Cluster, error) {
 		stars[i].IsClusterCore = true
 	}
 
-	distanceGrid := getDistanceGrid(configs, stars)
+	for i := 0; i < configs.Iterations; i++ {
+		distanceGrid := getDistanceGrid(configs, stars)
+		// assign stars to clusters
+		updateStarClusters(stars, distanceGrid, configs.ClusterCount)
+		// movestars away from each other
+		moveStarsAwayFromEachOther(stars, distanceGrid, configs.StarRepulsionFactor, configs.MaxX, configs.MaxY)
+		moveStarsAwayFromEdges(stars, configs.StarRepulsionFactor, configs.MaxX, configs.MaxY)
+		// move stars towards cluster core
+		// moveStarsTowardsClusterCore(stars, configs.ClusterAttractionFactor)
+		// move clusterCore
+		moveClusterCore(stars, configs.ClusterCount)
+	}
 
-	// assign stars to clusters
-	updateStarClusters(stars, distanceGrid, configs.ClusterCount)
-	// movestars away from each other
-	// move stars towards cluster core
+	clusterStarCounts := getClusterStarCounts(stars)
+
+	deviation := getDeviation(clusterStarCounts)
+
+	fmt.Println("Mean:", getMean(clusterStarCounts))
+	fmt.Println("Standard Deviation:", deviation)
 
 	return stars, nil, nil
 }
 
+func getDeviation(clusterStarCounts []int) float64 {
+	mean := getMean(clusterStarCounts)
+
+	variance := getVariance(clusterStarCounts, mean)
+
+	return math.Sqrt(variance)
+}
+
+func getVariance(clusterStarCounts []int, mean float64) float64 {
+	variance := 0.0
+	for _, count := range clusterStarCounts {
+		diff := mean - float64(count)
+		variance += diff * diff
+	}
+	variance = variance / float64(len(clusterStarCounts))
+	return variance
+}
+
+func getMean(clusterStarCounts []int) float64 {
+	mean := 0.0
+	for _, count := range clusterStarCounts {
+		mean += float64(count)
+	}
+	mean = mean / float64(len(clusterStarCounts))
+	return mean
+}
+
+func getClusterStarCounts(stars []Location) []int {
+
+	counts := []int{}
+
+	for _, star := range stars {
+		if star.ClusterId >= len(counts) {
+			counts = append(counts, make([]int, 1+star.ClusterId-len(counts))...)
+		}
+		counts[star.ClusterId]++
+	}
+	return counts
+}
+
+func moveStarsAwayFromEdges(stars []Location, repulsion, maxX, maxY float64) {
+	for i := range stars {
+		var dx float64 = 0
+		var dy float64 = 0
+
+		if stars[i].X <= 0 {
+			stars[i].X = 1
+		}
+		if stars[i].X >= maxX {
+			stars[i].X = maxX - 1
+		}
+		if stars[i].Y <= 0 {
+			stars[i].Y = 1
+		}
+		if stars[i].Y >= maxY {
+			stars[i].Y = maxY - 1
+		}
+
+		// repel from left
+
+		dx += 1 / (stars[i].X * stars[i].X)
+
+		// repel from right
+
+		dist := maxX - stars[i].X
+		dx -= 1 / (dist * dist)
+
+		//repel from top
+
+		dy += 1 / (stars[i].Y * stars[i].Y)
+
+		// repel from bottom
+
+		dist = maxY - stars[i].Y
+		dy -= 1 / (dist * dist)
+
+		// x := stars[i].X
+		// y := stars[i].Y
+
+		// fmt.Printf("X: %f, Y: %f, dX: %f, dY: %f", x, y, dx, dy)
+
+		stars[i].X += dx * repulsion
+		stars[i].Y += dy * repulsion
+	}
+}
+
+func moveClusterCore(stars []Location, clusterCount int) {
+	newLocArr := make([]Location, clusterCount)
+	starsInCluster := make([]int, clusterCount)
+	for i := 0; i < len(stars); i++ {
+		clusterId := stars[i].ClusterId
+		newLocArr[clusterId].X += stars[i].X
+		newLocArr[clusterId].Y += stars[i].Y
+		starsInCluster[clusterId]++
+	}
+
+	for i := range newLocArr {
+		stars[i].X = newLocArr[i].X / float64(starsInCluster[i])
+		stars[i].Y = newLocArr[i].Y / float64(starsInCluster[i])
+	}
+}
+
+func moveStarsTowardsClusterCore(stars []Location, clusterCoreAttraction float64) {
+	for i := range stars {
+		core := stars[stars[i].ClusterId]
+		stars[i].X = core.X + ((stars[i].X - core.X) * clusterCoreAttraction)
+		stars[i].Y = core.Y + ((stars[i].Y - core.Y) * clusterCoreAttraction)
+	}
+}
+
+func moveStarsAwayFromEachOther(stars []Location, distanceGrid [][]float64, repulsion, maxX, maxY float64) {
+
+	for i := range stars {
+		var dx float64 = 0
+		var dy float64 = 0
+		for j := range stars {
+			if i != j {
+				distance := distanceGrid[i][j]
+				repulsionX := stars[i].X - stars[j].X
+				repulsionY := stars[i].Y - stars[j].Y
+
+				dx += (repulsionX / (distance * distance * distance))
+				dy += (repulsionY / (distance * distance * distance))
+			}
+		}
+
+		// x := stars[i].X
+		// y := stars[i].Y
+
+		// fmt.Printf("X: %f, Y: %f, dX: %f, dY: %f", x, y, dx, dy)
+
+		stars[i].X += dx * repulsion
+		stars[i].Y += dy * repulsion
+	}
+
+}
+
 func updateStarClusters(stars []Location, distanceGrid [][]float64, clusterCount int) {
 
-	for i, star := range stars {
+	for i := range stars {
 		if i < clusterCount {
-			star.ClusterId = i
+			stars[i].ClusterId = i
 		} else {
-			closestClusterCoreId := getClosestClusterCoreId(star, distanceGrid, stars[:clusterCount])
-			star.ClusterId = closestClusterCoreId
+			closestClusterCoreId := getClosestClusterCoreId(stars[i], distanceGrid, stars[:clusterCount])
+			stars[i].ClusterId = closestClusterCoreId
 		}
 	}
 }
@@ -88,18 +246,18 @@ func getDistanceGrid(configs MapGenConfigs, stars []Location) [][]float64 {
 
 	for i := 0; i < configs.StarCount; i++ {
 		for j := i; j < configs.StarCount; j++ {
-			distanceGrid[i][j] = getDistSqr(stars[i], stars[j])
+			distanceGrid[i][j] = getDist(stars[i], stars[j])
 			distanceGrid[j][i] = distanceGrid[i][j]
 		}
 	}
 	return distanceGrid
 }
 
-func getDistSqr(location1, location2 Location) float64 {
+func getDist(location1, location2 Location) float64 {
 	dx := location1.X - location2.X
 	dy := location1.Y - location2.Y
 
-	return dx*dx + dy*dy
+	return math.Sqrt(dx*dx + dy*dy)
 }
 
 func initStarsAtRandomLocations(starCount int, maxX float64, maxY float64) []Location {
@@ -112,6 +270,7 @@ func initStarsAtRandomLocations(starCount int, maxX float64, maxY float64) []Loc
 			Y:             rand.Float64() * maxY,
 			ClusterId:     -1,
 			IsClusterCore: false,
+			Id:            i,
 		}
 
 		locations[i] = loc
