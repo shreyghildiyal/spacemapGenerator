@@ -14,7 +14,7 @@ func TestInitMap(t *testing.T) {
 	const HEIGHT = 800
 	const WIDTH = 800
 
-	stars, _, err := mapGen.InitMap(mapGen.MapGenConfigs{
+	stars, err := mapGen.InitMap(mapGen.MapGenConfigs{
 		MaxX:                    WIDTH - 50,
 		MaxY:                    HEIGHT - 50,
 		StarCount:               starCount,

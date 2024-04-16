@@ -12,7 +12,7 @@ import (
 )
 
 type Game struct {
-	stars          []mapGen.Location
+	stars          []mapGen.Star
 	clusterColours []color.RGBA
 }
 
@@ -55,7 +55,7 @@ func main() {
 	starCount := 600
 	clusterCount := 25
 
-	stars, _, err := mapGen.InitMap(mapGen.MapGenConfigs{
+	stars, err := mapGen.InitMap(mapGen.MapGenConfigs{
 		MaxX:                    WIDTH - 50,
 		MaxY:                    HEIGHT - 50,
 		StarCount:               starCount,
@@ -63,6 +63,7 @@ func main() {
 		StarRepulsionFactor:     5,
 		ClusterAttractionFactor: 0.50,
 		Iterations:              50,
+		InnerIterations:         50,
 		Seed:                    5,
 	})
 
