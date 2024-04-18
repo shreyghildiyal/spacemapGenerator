@@ -6,14 +6,32 @@ import (
 	"math"
 
 	"math/rand"
+
+	"github.com/shreyghildiyal/spacemapGenerator/cartesian"
 )
 
+type Segment struct {
+}
+
+// type Location struct {
+// 	X float64
+// 	Y float64
+// }
+
 type Star struct {
+	cartesian.Vector2
 	Id            int
-	X             float64
-	Y             float64
 	ClusterId     int
 	IsClusterCore bool
+	NeighbourMap  map[int]cartesian.Line
+}
+
+func (star *Star) GetX() float64 {
+	return star.X
+}
+
+func (star *Star) GetY() float64 {
+	return star.Y
 }
 
 type MapGenConfigs struct {
@@ -259,8 +277,11 @@ func initStarsAtRandomLocations(starCount int, maxX float64, maxY float64) []Sta
 	for i := 0; i < starCount; i++ {
 
 		loc := Star{
-			X:             randGen.Float64() * maxX,
-			Y:             randGen.Float64() * maxY,
+			Vector2: cartesian.Vector2{
+				X: randGen.Float64() * maxX,
+				Y: randGen.Float64() * maxY,
+			},
+
 			ClusterId:     -1,
 			IsClusterCore: false,
 			Id:            i,

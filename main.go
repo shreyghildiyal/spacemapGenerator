@@ -56,13 +56,13 @@ func main() {
 	clusterCount := 25
 
 	stars, err := mapGen.InitMap(mapGen.MapGenConfigs{
-		MaxX:                    WIDTH - 50,
-		MaxY:                    HEIGHT - 50,
+		MaxX:                    WIDTH,
+		MaxY:                    HEIGHT,
 		StarCount:               starCount,
 		ClusterCount:            clusterCount,
 		StarRepulsionFactor:     5,
 		ClusterAttractionFactor: 0.50,
-		Iterations:              50,
+		Iterations:              100,
 		InnerIterations:         50,
 		Seed:                    5,
 	})
@@ -72,6 +72,13 @@ func main() {
 		return
 	} else {
 		game.stars = stars
+	}
+
+	err = mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
+
+	if err != nil {
+		log.Fatal("There was an error in creating star boundaries", err.Error())
+		return
 	}
 
 	game.clusterColours = mapGen.GetClusterColours(clusterCount)
