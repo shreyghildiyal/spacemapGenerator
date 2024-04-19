@@ -1,18 +1,16 @@
 package mapGen
 
 import (
-	"errors"
-
 	"github.com/shreyghildiyal/spacemapGenerator/cartesian"
 )
 
 func AddStarBoundaries(stars []Star, maxX, maxY float64) error {
 
-	locations := getLocationsFromStars(stars)
+	// locations := getLocationsFromStars(stars)
 
 	// for each star get its boundary
 	for i := 0; i < len(stars); i++ {
-		neighbourMap, err := getBoundary(stars[i].Vector2, append(locations[:i], locations[i+1:]...), maxX, maxY)
+		neighbourMap, err := getBoundary(stars[i], stars, maxX, maxY)
 		if err != nil {
 			return err
 		}
@@ -30,14 +28,15 @@ func getLocationsFromStars(stars []Star) []cartesian.Vector2 {
 	return locArr
 }
 
-func getBoundary(loc cartesian.Vector2, allOtherLocs []cartesian.Vector2, maxX, maxY float64) (map[int]cartesian.Line, error) {
+func getBoundary(loc Star, otherLocs []Star, maxX, maxY float64) (map[int]cartesian.Line, error) {
 
 	boundary := getInitialBoundarySegments(maxX, maxY)
 
-	for _, otherLoc := range allOtherLocs {
-		bisectingLine := cartesian.GetBisectingLine(cartesian.Vector2{X: loc.X, Y: loc.Y}, cartesian.Vector2{X: otherLoc.X, Y: otherLoc.Y})
+	for otherLocId, otherLoc := range otherLocs {
+		bisectingLine := cartesian.GetBisectingLine(loc.Vector2, otherLoc.Vector2)
 		intersectionPoints := []cartesian.Vector2{}
-		for _, boundaryLine := range boundary {
+		intersectingBoundaryLines := map[int]bool{}
+		for boundaryLineId, boundaryLine := range boundary {
 			intersectionPoint, err := cartesian.GetIntersectionPoint(bisectingLine, boundaryLine)
 			if err != nil {
 				var m float64
@@ -50,28 +49,29 @@ func getBoundary(loc cartesian.Vector2, allOtherLocs []cartesian.Vector2, maxX, 
 				if m > 0 && m < 1 {
 					// this is a valid intersection and the intersection point is a potential part of the boundary
 					intersectionPoints = append(intersectionPoints, intersectionPoint)
+					intersectingBoundaryLines[boundaryLineId] = true
 				}
 			}
 		}
 
-		intersectionPoints = cartesian.GetUniquepoints(intersectionPoints)
-
-		if len(intersectionPoints) == 2 {
-			// this is the happy case.
-		} else if len(intersectionPoints) == 0 {
-			// kinda happy case. Nothing to be done
-		} else {
-			// something has gone horribly wrong?
-			return nil, errors.New("the number of intersection points was unexpected")
+		if len(intersectionPoints) != 0 {
+			newBoundary := []cartesian.Line{}
+			for boundaryLineId, boundaryLine := range boundary {
+				if _, ok := intersectingBoundaryLines[boundaryLineId]; ok {
+					// break the boundaryLine  and add only relevant part to the new boundary List
+				} else {
+					// check if both points are on the valid side or not. If both are on valid side, add to new boundary else delete the boundary.
+				}
+			}
 		}
 	}
 	return nil, nil
 }
 
-func getInitialBoundarySegments(maxX, maxY float64) []cartesian.Line {
+func getInitialBoundarySegments(maxX, maxY float64) map[int]cartesian.Line {
 
-	return []cartesian.Line{
-		{
+	return map[int]cartesian.Line{
+		-1: {
 			Anchor: cartesian.Vector2{
 				X: 0,
 				Y: 0,
@@ -81,7 +81,7 @@ func getInitialBoundarySegments(maxX, maxY float64) []cartesian.Line {
 				Y: 0,
 			},
 		},
-		{
+		-2: {
 			Anchor: cartesian.Vector2{
 				X: maxX,
 				Y: 0,
@@ -91,7 +91,7 @@ func getInitialBoundarySegments(maxX, maxY float64) []cartesian.Line {
 				Y: maxY,
 			},
 		},
-		{
+		-3: {
 			Anchor: cartesian.Vector2{
 				X: maxX,
 				Y: maxY,
@@ -101,7 +101,7 @@ func getInitialBoundarySegments(maxX, maxY float64) []cartesian.Line {
 				Y: 0,
 			},
 		},
-		{
+		-4: {
 			Anchor: cartesian.Vector2{
 				X: 0,
 				Y: maxY,
