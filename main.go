@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image"
 	"image/color"
 	"log"
 
@@ -45,10 +44,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 				vertex := ebiten.Vertex{
 					DstX:   float32(star.BoundaryCorners[i].X),
 					DstY:   float32(star.BoundaryCorners[i].Y),
-					ColorR: float32(g.clusterColours[star.ClusterId].R),
-					ColorG: float32(g.clusterColours[star.ClusterId].G),
-					ColorB: float32(g.clusterColours[star.ClusterId].B),
-					ColorA: float32(g.clusterColours[star.ClusterId].A),
+					ColorR: float32(g.clusterColours[star.ClusterId].R) / 255,
+					ColorG: float32(g.clusterColours[star.ClusterId].G) / 255,
+					ColorB: float32(g.clusterColours[star.ClusterId].B) / 255,
+					ColorA: float32(g.clusterColours[star.ClusterId].A) / 255,
 				}
 
 				vertices = append(vertices, vertex)
@@ -59,14 +58,14 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			vertices = append(vertices, ebiten.Vertex{
 				DstX:   float32(star.X),
 				DstY:   float32(star.Y),
-				ColorR: float32(g.clusterColours[star.ClusterId].R),
-				ColorG: float32(g.clusterColours[star.ClusterId].G),
-				ColorB: float32(g.clusterColours[star.ClusterId].B),
-				ColorA: float32(g.clusterColours[star.ClusterId].A),
+				ColorR: float32(g.clusterColours[star.ClusterId].R) / 255,
+				ColorG: float32(g.clusterColours[star.ClusterId].G) / 255,
+				ColorB: float32(g.clusterColours[star.ClusterId].B) / 255,
+				ColorA: float32(g.clusterColours[star.ClusterId].A) / 255,
 			})
 			// println(indices)
-			fmt.Println(indices)
-			screen.DrawTriangles(vertices, indices, g.dummyImage.SubImage(image.Rect(1, 1, 2, 2)).(*ebiten.Image), op)
+			// fmt.Println(indices)
+			screen.DrawTriangles(vertices, indices, g.dummyImage, op)
 		}
 
 		if star.IsClusterCore {
@@ -101,7 +100,7 @@ func main() {
 		R: 255,
 		G: 255,
 		B: 255,
-		A: 100,
+		A: 0,
 	})
 
 	if testMode == "STARGEN" {
