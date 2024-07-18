@@ -18,27 +18,12 @@ type Segment struct {
 // 	Y float64
 // }
 
-type Star struct {
-	cartesian.Vector2
-	Id            int
-	ClusterId     int
-	IsClusterCore bool
-	NeighbourMap  map[int]cartesian.Line
-}
-
-func (star *Star) GetX() float64 {
-	return star.X
-}
-
-func (star *Star) GetY() float64 {
-	return star.Y
-}
-
 type MapGenConfigs struct {
 	MaxX                    float64
 	MaxY                    float64
 	StarCount               int
 	ClusterCount            int
+	MaxStarCountRatio       float64
 	StarRepulsionFactor     float64
 	ClusterAttractionFactor float64
 	Iterations              int
@@ -59,7 +44,9 @@ func InitMap(configs MapGenConfigs) ([]Star, error) {
 	bestStars := []Star{}
 	bestStandardDeviation := -1.0
 
-	for j := 0; j < configs.Iterations; j++ {
+	j := 0
+
+	for j < configs.Iterations {
 
 		stars := initStarsAtRandomLocations(configs.StarCount, configs.MaxX, configs.MaxY)
 
@@ -68,14 +55,14 @@ func InitMap(configs MapGenConfigs) ([]Star, error) {
 			stars[i].IsClusterCore = true
 		}
 
-		distanceGrid := [][]float64{}
+		distanceGrid := getDistanceGrid(configs, stars)
+		// movestars away from each other
+		moveStarsAwayFromEachOther(stars, distanceGrid, configs.StarRepulsionFactor)
+		moveStarsAwayFromEdges(stars, configs.StarRepulsionFactor, configs.MaxX, configs.MaxY)
 		for i := 0; i < configs.InnerIterations; i++ {
-			distanceGrid = getDistanceGrid(configs, stars)
+
 			// assign stars to clusters
 			updateStarClusters(stars, distanceGrid, configs.ClusterCount)
-			// movestars away from each other
-			moveStarsAwayFromEachOther(stars, distanceGrid, configs.StarRepulsionFactor)
-			moveStarsAwayFromEdges(stars, configs.StarRepulsionFactor, configs.MaxX, configs.MaxY)
 
 			// move clusterCore
 			moveClusterCore(stars, configs.ClusterCount)
@@ -87,16 +74,46 @@ func InitMap(configs MapGenConfigs) ([]Star, error) {
 
 		deviation := getDeviation(clusterStarCounts)
 
-		fmt.Println("Standard Deviation:", deviation)
+		// fmt.Println("Standard Deviation:", deviation)
+		minClusterStarCount := getMinClusterStarCount(clusterStarCounts)
+		maxClusterStarCount := getMaxClusterStarCount(clusterStarCounts)
+		ratio := float64(maxClusterStarCount) / float64(minClusterStarCount)
 
-		if len(bestStars) < configs.StarCount || deviation < float64(bestStandardDeviation) {
-			bestStars = stars
-			bestStandardDeviation = deviation
-			fmt.Println("Best standard deviation in cluster star count: ", bestStandardDeviation)
+		if ratio >= configs.MaxStarCountRatio {
+
+			if len(bestStars) < configs.StarCount || deviation < float64(bestStandardDeviation) {
+				bestStars = stars
+				bestStandardDeviation = deviation
+				fmt.Println("Best standard deviation in cluster star count: ", bestStandardDeviation, j, configs.Iterations)
+
+			}
+			j++
+
 		}
 
 	}
 	return bestStars, nil
+}
+
+func getMaxClusterStarCount(clusterStarCounts []int) int {
+	max := clusterStarCounts[0]
+	for i := 1; i < len(clusterStarCounts); i++ {
+		if clusterStarCounts[i] > max {
+			max = clusterStarCounts[i]
+		}
+	}
+	return max
+}
+
+func getMinClusterStarCount(clusterStarCounts []int) int {
+
+	min := clusterStarCounts[0]
+	for i := 1; i < len(clusterStarCounts); i++ {
+		if clusterStarCounts[i] < min {
+			min = clusterStarCounts[i]
+		}
+	}
+	return min
 }
 
 func getDeviation(clusterStarCounts []int) float64 {
