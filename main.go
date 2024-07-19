@@ -28,63 +28,74 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for _, star := range g.stars {
 
-		cornerCount := len(star.BoundaryCorners)
-		// cornerCount := -1
+		drawDomain(star, g, screen)
 
-		if cornerCount > 0 {
-			// println("Drawing boundaries")
-			op := &ebiten.DrawTrianglesOptions{
-				Blend: ebiten.Blend{},
-			}
+		drawNeighbourLines(star, screen)
 
-			vertices := []ebiten.Vertex{}
-			indices := []uint16{}
+		drawStar(star, screen, g, debugY)
 
-			for i := 0; i < cornerCount; i++ {
-				vertex := ebiten.Vertex{
-					DstX:   float32(star.BoundaryCorners[i].X),
-					DstY:   float32(star.BoundaryCorners[i].Y),
-					ColorR: float32(g.clusterColours[star.ClusterId].R) / 255,
-					ColorG: float32(g.clusterColours[star.ClusterId].G) / 255,
-					ColorB: float32(g.clusterColours[star.ClusterId].B) / 255,
-					ColorA: float32(g.clusterColours[star.ClusterId].A) / 255,
-				}
+	}
 
-				vertices = append(vertices, vertex)
+}
 
-				indices = append(indices, uint16((i)%cornerCount), uint16((i+1)%cornerCount), uint16(cornerCount))
-			}
+func drawDomain(star mapGen.Star, g *Game, screen *ebiten.Image) {
+	cornerCount := len(star.BoundaryCorners)
 
-			vertices = append(vertices, ebiten.Vertex{
-				DstX:   float32(star.X),
-				DstY:   float32(star.Y),
+	if cornerCount > 0 {
+
+		op := &ebiten.DrawTrianglesOptions{
+			Blend: ebiten.Blend{},
+		}
+
+		vertices := []ebiten.Vertex{}
+		indices := []uint16{}
+
+		for i := 0; i < cornerCount; i++ {
+			vertex := ebiten.Vertex{
+				DstX:   float32(star.BoundaryCorners[i].X),
+				DstY:   float32(star.BoundaryCorners[i].Y),
 				ColorR: float32(g.clusterColours[star.ClusterId].R) / 255,
 				ColorG: float32(g.clusterColours[star.ClusterId].G) / 255,
 				ColorB: float32(g.clusterColours[star.ClusterId].B) / 255,
 				ColorA: float32(g.clusterColours[star.ClusterId].A) / 255,
-			})
-			// println(indices)
-			// fmt.Println(indices)
-			screen.DrawTriangles(vertices, indices, g.dummyImage, op)
+			}
+
+			vertices = append(vertices, vertex)
+
+			indices = append(indices, uint16((i)%cornerCount), uint16((i+1)%cornerCount), uint16(cornerCount))
 		}
 
-		// draw a line to the neighbour
+		vertices = append(vertices, ebiten.Vertex{
+			DstX:   float32(star.X),
+			DstY:   float32(star.Y),
+			ColorR: float32(g.clusterColours[star.ClusterId].R) / 255,
+			ColorG: float32(g.clusterColours[star.ClusterId].G) / 255,
+			ColorB: float32(g.clusterColours[star.ClusterId].B) / 255,
+			ColorA: float32(g.clusterColours[star.ClusterId].A) / 255,
+		})
 
-		for i := range star.Neighbours {
+		screen.DrawTriangles(vertices, indices, g.dummyImage, op)
+	}
+}
+
+func drawStar(star mapGen.Star, screen *ebiten.Image, g *Game, debugY int) {
+	if star.IsClusterCore {
+
+		vector.DrawFilledRect(screen, float32(star.X)-4, float32(star.Y)-4, 8, 8, g.clusterColours[star.ClusterId], true)
+
+		debugY += 20
+	} else {
+		vector.DrawFilledCircle(screen, float32(star.X), float32(star.Y), 2, g.clusterColours[star.ClusterId], true)
+	}
+}
+
+func drawNeighbourLines(star mapGen.Star, screen *ebiten.Image) {
+	for i := range star.Neighbours {
+		if star.Id < star.Neighbours[i].Id {
 			vector.StrokeLine(screen, float32(star.Neighbours[i].X), float32(star.Neighbours[i].Y), float32(star.X), float32(star.Y), 1, color.White, false)
 		}
 
-		if star.IsClusterCore {
-			// vector.DrawFilledCircle(screen, float32(star.X), float32(star.Y), 2, RED, true)
-			vector.DrawFilledRect(screen, float32(star.X)-4, float32(star.Y)-4, 8, 8, g.clusterColours[star.ClusterId], true)
-			// ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Id: %d, X: %f, Y: %f\n", star.Id, star.X, star.Y), 0, debugY)
-			debugY += 20
-		} else {
-			vector.DrawFilledCircle(screen, float32(star.X), float32(star.Y), 2, g.clusterColours[star.ClusterId], true)
-		}
-
 	}
-
 }
 
 const HEIGHT = 800
