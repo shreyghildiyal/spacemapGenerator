@@ -55,7 +55,7 @@ func InitMap(configs MapGenConfigs) ([]Star, error) {
 			stars[i].IsClusterCore = true
 		}
 
-		distanceGrid := getDistanceGrid(configs, stars)
+		distanceGrid := getDistanceGrid(stars)
 		// movestars away from each other
 		moveStarsAwayFromEachOther(stars, distanceGrid, configs.StarRepulsionFactor)
 		moveStarsAwayFromEdges(stars, configs.StarRepulsionFactor, configs.MaxX, configs.MaxY)
@@ -266,14 +266,14 @@ func getClosestClusterCoreId(star Star, distanceGrid [][]float64, clusterCores [
 	return clusterId
 }
 
-func getDistanceGrid(configs MapGenConfigs, stars []Star) [][]float64 {
-	distanceGrid := make([][]float64, configs.StarCount)
-	for i := 0; i < configs.StarCount; i++ {
-		distanceGrid[i] = make([]float64, configs.StarCount)
+func getDistanceGrid(stars []Star) [][]float64 {
+	distanceGrid := make([][]float64, len(stars))
+	for i := 0; i < len(stars); i++ {
+		distanceGrid[i] = make([]float64, len(stars))
 	}
 
-	for i := 0; i < configs.StarCount; i++ {
-		for j := i; j < configs.StarCount; j++ {
+	for i := 0; i < len(stars); i++ {
+		for j := i; j < len(stars); j++ {
 			distanceGrid[i][j] = getDist(stars[i], stars[j])
 			distanceGrid[j][i] = distanceGrid[i][j]
 		}
