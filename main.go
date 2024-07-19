@@ -68,6 +68,12 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			screen.DrawTriangles(vertices, indices, g.dummyImage, op)
 		}
 
+		// draw a line to the neighbour
+
+		for i := range star.Neighbours {
+			vector.StrokeLine(screen, float32(star.Neighbours[i].X), float32(star.Neighbours[i].Y), float32(star.X), float32(star.Y), 1, color.White, false)
+		}
+
 		if star.IsClusterCore {
 			// vector.DrawFilledCircle(screen, float32(star.X), float32(star.Y), 2, RED, true)
 			vector.DrawFilledRect(screen, float32(star.X)-4, float32(star.Y)-4, 8, 8, g.clusterColours[star.ClusterId], true)
@@ -140,6 +146,7 @@ func boundaryGeneration(game Game) {
 
 	// err = mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
 	err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
+	mapGen.AddDummyNeighbours(stars)
 
 	if err != nil {
 		log.Fatal("There was an error in creating star boundaries", err.Error())
