@@ -131,8 +131,8 @@ func boundaryGeneration(game Game) {
 	ebiten.SetWindowSize(WIDTH, HEIGHT)
 	ebiten.SetWindowTitle("Hello, World!")
 
-	starCount := 100
-	clusterCount := 90
+	starCount := 10
+	clusterCount := 9
 	maxStarCountRatio := 1.5
 
 	stars, err := mapGen.InitMap(mapGen.MapGenConfigs{
@@ -155,8 +155,8 @@ func boundaryGeneration(game Game) {
 		game.stars = stars
 	}
 
-	// err = mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
-	err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
+	err = mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
+	// err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
 	mapGen.AddDummyNeighbours(stars)
 
 	if err != nil {
