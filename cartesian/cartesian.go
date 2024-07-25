@@ -130,10 +130,11 @@ func removeOtherColVals(equationLhs [][]float64, baseRow int, equationRhs []floa
 }
 
 func normalizeRow(row int, equationLhs [][]float64, equationRhs []float64) {
+	divideVal := equationLhs[row][row]
 	for j := 0; j < len(equationLhs[row]); j++ {
-		equationLhs[row][j] = equationLhs[row][j] / equationLhs[row][row]
+		equationLhs[row][j] = equationLhs[row][j] / divideVal
 	}
-	equationRhs[row] = equationRhs[row] / equationLhs[row][row]
+	equationRhs[row] = equationRhs[row] / divideVal
 }
 
 func swapWithValidRow(baseRow int, equationLhs [][]float64, equationRhs []float64) error {
