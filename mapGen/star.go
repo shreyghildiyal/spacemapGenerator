@@ -9,7 +9,7 @@ type Star struct {
 	IsClusterCore   bool
 	BoundaryCorners []cartesian.Vector2
 	Neighbours      []Star
-	Borders         map[int]cartesian.Line
+	Borders         map[int]cartesian.Line2D
 }
 
 func (star *Star) GetX() float64 {

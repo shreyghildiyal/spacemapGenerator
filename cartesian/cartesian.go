@@ -13,7 +13,7 @@ type Vector3 struct {
 	Z float64
 }
 
-type Line struct {
+type Line2D struct {
 	Anchor    Vector2
 	Direction Vector2
 }
@@ -39,36 +39,44 @@ func CrossProduct(vector1, vector2 Vector3) Vector3 {
 	return newVec
 }
 
-func GetBisectingLine(point1, point2 Vector2) Line {
+func GetBisectingLine(point1, point2 Vector2) Line2D {
 	midPoint := Vector2{
 		X: (point1.X + point2.X) / 2,
 		Y: (point1.Y + point2.Y) / 2,
 	}
 
 	perpendicularVector := GetPerpendicularVector(Vector2{X: point1.X - point2.X, Y: point1.Y - point2.Y})
-	return Line{
+	return Line2D{
 		Anchor:    midPoint,
 		Direction: perpendicularVector,
 	}
 }
 
-func GetIntersectionPoint(line1, line2 Line) (Vector2, error) {
+func GetIntersectionPoint(line1, line2 Line2D) (Vector2, float64, float64, error) {
+
+	// find the
+
 	equationLhs := [][]float64{
-		{-line1.Direction.X, line2.Direction.X},
-		{-line1.Direction.Y, line2.Direction.Y},
+		{line1.Direction.X, -line2.Direction.X},
+		{line1.Direction.Y, line2.Direction.Y},
 	}
 	equationRhs := []float64{
-		line1.Anchor.X - line2.Anchor.X,
-		line1.Anchor.Y - line2.Anchor.Y,
+		line2.Anchor.X - line1.Anchor.X,
+		line2.Anchor.Y - line1.Anchor.Y,
 	}
 
-	res, err := SolveLinearEquations(equationLhs, equationRhs)
+	res, err := SolveLinearEquations(equationLhs, equationRhs) // res > [k, l] k is the multiplier for line 1. l is multiplier for line 2
+
 	if err == nil {
-		m := res[0]
-		return line1.Anchor.Add(line1.Direction.Multiply(m)), nil
+
+		k := res[0]
+		if k < 0 || k > 1 {
+			return Vector2{}, 0, 0, errors.New("the line segments dont intersect. the lines do")
+		}
+		return line1.Anchor.Add(line1.Direction.Multiply(k)), res[0], res[1], nil
 	}
 
-	return Vector2{}, err
+	return Vector2{}, 0, 0, err
 
 }
 
@@ -169,7 +177,7 @@ func (v Vector2) Multiply(m float64) Vector2 {
 	}
 }
 
-func (line Line) IsBetween(p1, p2 Vector2) bool {
+func (line Line2D) IsBetween(p1, p2 Vector2) bool {
 
 	diffVec1 := line.Anchor.Subtract(p1)
 	diffVec2 := line.Anchor.Subtract(p2)
@@ -222,7 +230,7 @@ func GetUniquepoints(points []Vector2) []Vector2 {
 	return retVectors
 }
 
-func IsSameSide(line Line, point1, point2 Vector2) bool {
+func IsSameSide(line Line2D, point1, point2 Vector2) bool {
 
 	product1 := CrossProduct(AsVector3(point1.Subtract(line.Anchor)), AsVector3(line.Direction))
 	product2 := CrossProduct(AsVector3(point2.Subtract(line.Anchor)), AsVector3(line.Direction))
@@ -235,9 +243,9 @@ func IsSameSide(line Line, point1, point2 Vector2) bool {
 
 }
 
-func GetLine(start, end Vector2) Line {
+func GetLine(start, end Vector2) Line2D {
 	direction := end.Subtract(start)
-	return Line{
+	return Line2D{
 		Anchor:    start,
 		Direction: direction,
 	}
@@ -250,6 +258,6 @@ func (vec Vector2) Subtract(vec2 Vector2) Vector2 {
 	}
 }
 
-func (line Line) EndPoint() Vector2 {
+func (line Line2D) EndPoint() Vector2 {
 	return line.Anchor.Add(line.Direction)
 }

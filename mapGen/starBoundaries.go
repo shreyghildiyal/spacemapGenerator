@@ -112,7 +112,8 @@ func AddStarBoundaries(stars []Star, maxX, maxY float64) error {
 
 	for _, star := range stars {
 		wg.Add(1)
-		go populateBorders(star, grid, maxX, maxY, &wg)
+		// go populateBorders(star, grid, maxX, maxY, &wg)
+		populateBorders(star, grid, maxX, maxY, &wg)
 	}
 
 	wg.Wait()
@@ -123,7 +124,7 @@ func AddStarBoundaries(stars []Star, maxX, maxY float64) error {
 func populateBorders(star Star, grid [][][]Star, maxX, maxY float64, wg *sync.WaitGroup) {
 	boundaryCorners, borders, err := neighbourMap(star, grid, maxX, maxY)
 	if err == nil {
-		fmt.Println(star.Id, "Boundary corner count", len(boundaryCorners))
+		fmt.Println(star.Id, "Boundary corner count", len(boundaryCorners), star.X, star.Y)
 		star.BoundaryCorners = boundaryCorners
 		star.Borders = borders
 
@@ -163,7 +164,7 @@ func getPopulatedGrid(stars []Star, maxX, maxY float64) [][][]Star {
 	return grid
 }
 
-func neighbourMap(star Star, grid [][][]Star, maxX, maxY float64) ([]cartesian.Vector2, map[int]cartesian.Line, error) {
+func neighbourMap(star Star, grid [][][]Star, maxX, maxY float64) ([]cartesian.Vector2, map[int]cartesian.Line2D, error) {
 
 	borders := getInitialBoundarySegments(maxX, maxY)
 
@@ -242,15 +243,15 @@ func addToCheck(row, col int, grid [][][]Star, cellToCheck [][]int) {
 
 }
 
-func updateBoundary(star, gStar Star, borders map[int]cartesian.Line) {
+func updateBoundary(star, gStar Star, borders map[int]cartesian.Line2D) {
 
 	// get the bisecting line between star and gStar
 	bisectingLine := cartesian.GetBisectingLine(star.Vector2, gStar.Vector2)
 
 	intersectionPoints := []cartesian.Vector2{}
 	for starId, borderLine := range borders {
-		intersectionPoint, err := cartesian.GetIntersectionPoint(bisectingLine, borderLine)
-		if err == nil {
+		intersectionPoint, _, multiplier, err := cartesian.GetIntersectionPoint(bisectingLine, borderLine)
+		if err == nil && multiplier >= 0 && multiplier <= 1 {
 			if cartesian.IsSameSide(bisectingLine, borderLine.Anchor, star.Vector2) {
 				newSegment := cartesian.GetLine(borderLine.Anchor, intersectionPoint)
 				borders[starId] = newSegment
@@ -284,9 +285,9 @@ func updateBoundary(star, gStar Star, borders map[int]cartesian.Line) {
 // 	panic("unimplemented")
 // }
 
-func getInitialBoundarySegments(maxX, maxY float64) map[int]cartesian.Line {
+func getInitialBoundarySegments(maxX, maxY float64) map[int]cartesian.Line2D {
 
-	return map[int]cartesian.Line{
+	return map[int]cartesian.Line2D{
 		-1: {
 			Anchor: cartesian.Vector2{
 				X: 0,
