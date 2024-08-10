@@ -8,6 +8,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
+	"github.com/shreyghildiyal/spacemapGenerator/cartesian"
 	"github.com/shreyghildiyal/spacemapGenerator/mapGen"
 )
 
@@ -41,6 +42,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 func drawDomain(star mapGen.Star, g *Game, screen *ebiten.Image) {
 	cornerCount := len(star.BoundaryCorners)
 
+	fmt.Println("StarId", star.Id, "corner count", cornerCount)
 	if cornerCount > 0 {
 
 		op := &ebiten.DrawTrianglesOptions{
@@ -107,7 +109,10 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 func main() {
 
-	testMode := "BOUNDARYGEN"
+	testMode := "STARGEN"
+
+	ebiten.SetWindowSize(WIDTH, HEIGHT)
+	ebiten.SetWindowTitle("Hello, World!")
 
 	game := Game{}
 
@@ -124,12 +129,54 @@ func main() {
 		starGeneration(game)
 	} else if testMode == "BOUNDARYGEN" {
 		boundaryGeneration(game)
+	} else if testMode == "BOUNDARYGENTEST" {
+		boundaryGenTest(game)
+	}
+}
+
+func boundaryGenTest(game Game) {
+
+	star1 := mapGen.Star{
+		Vector2: cartesian.Vector2{
+			X: 100,
+			Y: 100,
+		},
+		Id:            0,
+		ClusterId:     0,
+		IsClusterCore: true,
+	}
+
+	game.stars = append(game.stars, star1)
+
+	star2 := mapGen.Star{
+		Vector2: cartesian.Vector2{
+			X: 200,
+			Y: 200,
+		},
+		Id:            1,
+		ClusterId:     1,
+		IsClusterCore: true,
+	}
+
+	game.stars = append(game.stars, star2)
+
+	err := mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
+	// err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
+	mapGen.AddDummyNeighbours(game.stars)
+
+	if err != nil {
+		log.Fatal("There was an error in creating star boundaries", err.Error())
+		return
+	}
+
+	game.clusterColours = mapGen.GetClusterColours(2)
+
+	if err := ebiten.RunGame(&game); err != nil {
+		log.Fatal(err)
 	}
 }
 
 func boundaryGeneration(game Game) {
-	ebiten.SetWindowSize(WIDTH, HEIGHT)
-	ebiten.SetWindowTitle("Hello, World!")
 
 	starCount := 10
 	clusterCount := 9
@@ -199,12 +246,12 @@ func starGeneration(game Game) {
 		game.stars = stars
 	}
 
-	// err = mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
+	err = mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
 
-	// if err != nil {
-	// 	log.Fatal("There was an error in creating star boundaries", err.Error())
-	// 	return
-	// }
+	if err != nil {
+		log.Fatal("There was an error in creating star boundaries", err.Error())
+		return
+	}
 
 	game.clusterColours = mapGen.GetClusterColours(clusterCount)
 

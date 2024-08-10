@@ -39,3 +39,29 @@ func TestBoundaryGeneration(t *testing.T) {
 
 	mapGen.AddStarBoundaries(stars, maxX, maxY)
 }
+
+func TestBoundaryGeneration2(t *testing.T) {
+
+	stars := []mapGen.Star{}
+
+	maxX := 800.0
+	maxY := 800.0
+
+	// starCount := 10
+
+	coords := [][]float64{
+		{100, 100},
+		{200, 200},
+	}
+
+	for i := 0; i < len(coords); i++ {
+		star := mapGen.Star{
+			Id: i,
+		}
+		star.X = coords[i][0]
+		star.Y = coords[i][1]
+		stars = append(stars, star)
+	}
+
+	mapGen.AddStarBoundaries(stars, maxX, maxY)
+}

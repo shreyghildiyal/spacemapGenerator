@@ -39,6 +39,10 @@ func CrossProduct(vector1, vector2 Vector3) Vector3 {
 	return newVec
 }
 
+func DotProduct(vec1, vec2 Vector2) float64 {
+	return vec1.X*vec2.X + vec1.Y*vec2.Y
+}
+
 func GetBisectingLine(point1, point2 Vector2) Line2D {
 	midPoint := Vector2{
 		X: (point1.X + point2.X) / 2,
@@ -58,7 +62,7 @@ func GetIntersectionPoint(line1, line2 Line2D) (Vector2, float64, float64, error
 
 	equationLhs := [][]float64{
 		{line1.Direction.X, -line2.Direction.X},
-		{line1.Direction.Y, line2.Direction.Y},
+		{line1.Direction.Y, -line2.Direction.Y},
 	}
 	equationRhs := []float64{
 		line2.Anchor.X - line1.Anchor.X,
@@ -70,9 +74,9 @@ func GetIntersectionPoint(line1, line2 Line2D) (Vector2, float64, float64, error
 	if err == nil {
 
 		k := res[0]
-		if k < 0 || k > 1 {
-			return Vector2{}, 0, 0, errors.New("the line segments dont intersect. the lines do")
-		}
+		// if k < 0 || k > 1 {
+		// 	return Vector2{}, 0, 0, errors.New("the line segments dont intersect. the lines do")
+		// }
 		return line1.Anchor.Add(line1.Direction.Multiply(k)), res[0], res[1], nil
 	}
 
@@ -260,4 +264,8 @@ func (vec Vector2) Subtract(vec2 Vector2) Vector2 {
 
 func (line Line2D) EndPoint() Vector2 {
 	return line.Anchor.Add(line.Direction)
+}
+
+func (vec Vector2) Equals(vec2 Vector2) bool {
+	return vec.X == vec2.X && vec.Y == vec2.Y
 }

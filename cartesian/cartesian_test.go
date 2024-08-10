@@ -94,16 +94,42 @@ func TestSolveLinearEquations2(t *testing.T) {
 
 }
 
+func TestPerpendicularVector(t *testing.T) {
+	inputVector := cartesian.Vector2{
+		X: 100,
+		Y: 0,
+	}
+	outVector := cartesian.GetPerpendicularVector(inputVector)
+	if outVector.X != 0 {
+		t.Errorf("The returned vector is not perpendicular to input vector")
+	}
+	if cartesian.DotProduct(inputVector, outVector) != 0 {
+		t.Errorf("The returned vector is not perpendicular to input vector")
+	}
+}
+
+func TestPerpendicularVector2(t *testing.T) {
+	inputVector := cartesian.Vector2{
+		X: 100,
+		Y: 100,
+	}
+	outVector := cartesian.GetPerpendicularVector(inputVector)
+
+	if cartesian.DotProduct(inputVector, outVector) != 0 {
+		t.Errorf("The returned vector is not perpendicular to input vector")
+	}
+}
+
 func TestGetIntersectionPoint(t *testing.T) {
 
 	bisectingLine := cartesian.Line2D{
 		Anchor: cartesian.Vector2{
-			X: 15,
-			Y: 10,
+			X: 150,
+			Y: 150,
 		},
 		Direction: cartesian.Vector2{
 			X: 0,
-			Y: -1,
+			Y: 100,
 		},
 	}
 
@@ -124,15 +150,38 @@ func TestGetIntersectionPoint(t *testing.T) {
 		t.Error("there was an error in getting intersection point")
 	}
 
-	if intersectionPoint.X != 15 || intersectionPoint.Y != 0 {
+	if intersectionPoint.X != 150 || intersectionPoint.Y != 0 {
 		t.Error("the intersection point was incorrect")
 	}
 
-	if multi1 != 10 {
-		t.Error("the multi for bisecting line was wrong")
+	if multi1 != -1.5 {
+		t.Errorf("the multi for bisecting line was wrong. Found %f", multi1)
 	}
 
-	if multi2 != 15.0/800.0 {
-		t.Error("the boundary line segment multi is wrong")
+	if multi2 != 150.0/800.0 {
+		t.Errorf("the boundary line segment multi is wrong. Found %f. Expected %f", multi2, 150.0/800.0)
 	}
+}
+
+func TestGetBisectingLine(t *testing.T) {
+	point1 := cartesian.Vector2{
+		X: 100,
+		Y: 100,
+	}
+
+	point2 := cartesian.Vector2{
+		X: 200,
+		Y: 200,
+	}
+
+	bisectingLine := cartesian.GetBisectingLine(point1, point2)
+
+	if bisectingLine.Anchor.X != 150 {
+		t.Errorf("Anchor.X should be 150 but was %f", bisectingLine.Anchor.X)
+	}
+
+	if bisectingLine.Anchor.Y != 150 {
+		t.Errorf("Anchor.Y should be 150 but was %f", bisectingLine.Anchor.X)
+	}
+
 }

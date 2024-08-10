@@ -1,6 +1,7 @@
 package mapGen
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -110,10 +111,10 @@ func AddStarBoundaries(stars []Star, maxX, maxY float64) error {
 
 	wg := sync.WaitGroup{}
 
-	for _, star := range stars {
+	for i, _ := range stars {
 		wg.Add(1)
 		// go populateBorders(star, grid, maxX, maxY, &wg)
-		populateBorders(star, grid, maxX, maxY, &wg)
+		populateBorders(i, stars, grid, maxX, maxY, &wg)
 	}
 
 	wg.Wait()
@@ -121,12 +122,13 @@ func AddStarBoundaries(stars []Star, maxX, maxY float64) error {
 	return nil
 }
 
-func populateBorders(star Star, grid [][][]Star, maxX, maxY float64, wg *sync.WaitGroup) {
-	boundaryCorners, borders, err := neighbourMap(star, grid, maxX, maxY)
+func populateBorders(starId int, stars []Star, grid [][][]Star, maxX, maxY float64, wg *sync.WaitGroup) {
+	boundaryCorners, borders, err := neighbourMap(stars[starId], grid, maxX, maxY)
+
 	if err == nil {
-		fmt.Println(star.Id, "Boundary corner count", len(boundaryCorners), star.X, star.Y)
-		star.BoundaryCorners = boundaryCorners
-		star.Borders = borders
+		fmt.Println(starId, "Boundary corner count", len(boundaryCorners), stars[starId].X, stars[starId].Y)
+		stars[starId].BoundaryCorners = boundaryCorners
+		stars[starId].Borders = borders
 
 	} else {
 		fmt.Println(err.Error())
@@ -175,30 +177,92 @@ func neighbourMap(star Star, grid [][][]Star, maxX, maxY float64) ([]cartesian.V
 			if cellToCheck[row][col] == 1 {
 				cellStars := grid[row][col]
 				for _, cellStar := range cellStars {
-					updateBoundary(star, cellStar, borders)
+					if star.Id != cellStar.Id {
+						updateBoundary(star, cellStar, borders)
+					}
+
 				}
 			}
 		}
 	}
 
-	boundaryPoints := []cartesian.Vector2{}
+	// fmt.Println("Anchor", borderLine.Anchor)
+	// fmt.Println("Endpoint", borderLine.EndPoint())
+	// fmt.Println(boundaryPoints)
+	boundaryPoints, borders, err := cleanupBorders(borders)
+	if err == nil {
+		// fmt.Println("boundary star ", star.Id, boundaryPoints)
+		return boundaryPoints, borders, nil
+	} else {
+		return []cartesian.Vector2{}, map[int]cartesian.Line2D{}, err
+	}
+
+}
+
+func cleanupBorders(borders map[int]cartesian.Line2D) ([]cartesian.Vector2, map[int]cartesian.Line2D, error) {
+	boundaryLines := []cartesian.Line2D{}
 
 	for starId, borderLine := range borders {
 
-		// fmt.Println("Anchor", borderLine.Anchor)
-		boundaryPoints = append(boundaryPoints, borderLine.Anchor)
-		// fmt.Println("Endpoint", borderLine.EndPoint())
-		boundaryPoints = append(boundaryPoints, borderLine.EndPoint())
+		boundaryLines = append(boundaryLines, borderLine)
+		// boundaryPoints = append(boundaryPoints, borderLine.Anchor)
+
+		// boundaryPoints = append(boundaryPoints, borderLine.EndPoint())
 
 		if starId < 0 {
 			delete(borders, starId)
 		}
 	}
 
-	// fmt.Println(boundaryPoints)
-	boundaryPoints = cartesian.GetUniquepoints(boundaryPoints)
+	boundaryPoints, err := getOrderedBoundaryPoints(boundaryLines)
 
-	return boundaryPoints, borders, nil
+	// boundaryPoints = cartesian.GetUniquepoints(boundaryPoints)
+
+	return boundaryPoints, borders, err
+}
+
+func getOrderedBoundaryPoints(boundaryLines []cartesian.Line2D) ([]cartesian.Vector2, error) {
+
+	orderedPoints := []cartesian.Vector2{}
+
+	orderedPoints = append(orderedPoints, boundaryLines[0].Anchor)
+	nextPoint := boundaryLines[0].EndPoint()
+	addedIndexes := make([]bool, len(boundaryLines))
+	addedIndexes[0] = true
+	for !nextPoint.Equals(boundaryLines[0].Anchor) {
+		nextIndex := -1
+		reverse := false
+
+		for i := 0; i < len(boundaryLines); i++ {
+			if !addedIndexes[i] {
+				line := boundaryLines[i]
+				if nextPoint.Equals(line.Anchor) {
+					nextIndex = i
+					reverse = false
+					break
+				} else if nextPoint.Equals(line.EndPoint()) {
+					nextIndex = i
+					reverse = true
+					break
+				}
+			}
+		}
+		if nextIndex == -1 {
+			return nil, errors.New("issue in ordering the boundary points")
+		} else {
+			if reverse {
+				orderedPoints = append(orderedPoints, boundaryLines[nextIndex].EndPoint())
+				nextPoint = boundaryLines[nextIndex].Anchor
+
+			} else {
+				orderedPoints = append(orderedPoints, boundaryLines[nextIndex].Anchor)
+				nextPoint = boundaryLines[nextIndex].EndPoint()
+			}
+			addedIndexes[nextIndex] = true
+		}
+	}
+
+	return orderedPoints, nil
 }
 
 func getCellsToCheck(star Star, maxX float64, maxY float64, grid [][][]Star) [][]int {
@@ -247,11 +311,18 @@ func updateBoundary(star, gStar Star, borders map[int]cartesian.Line2D) {
 
 	// get the bisecting line between star and gStar
 	bisectingLine := cartesian.GetBisectingLine(star.Vector2, gStar.Vector2)
-
+	// fmt.Println("Point 1 ", star.X, star.Y)
+	// fmt.Println("Point 2 ", gStar.X, gStar.Y)
+	// fmt.Println("Bisecting line Anchor", bisectingLine.Anchor.X, bisectingLine.Anchor.Y)
+	// fmt.Println("Bisecting line Direction", bisectingLine.Direction.X, bisectingLine.Direction.Y)
 	intersectionPoints := []cartesian.Vector2{}
 	for starId, borderLine := range borders {
+		// fmt.Println("-Borderline Anchor", borderLine.Anchor.X, borderLine.Anchor.Y)
+		// fmt.Println("-Borderline Direction", borderLine.Direction.X, borderLine.Direction.Y)
 		intersectionPoint, _, multiplier, err := cartesian.GetIntersectionPoint(bisectingLine, borderLine)
+		// fmt.Println("-Intersection point: ", intersectionPoint.X, intersectionPoint.Y, "multiplier", multiplier)
 		if err == nil && multiplier >= 0 && multiplier <= 1 {
+			// fmt.Println("--valid intersection")
 			if cartesian.IsSameSide(bisectingLine, borderLine.Anchor, star.Vector2) {
 				newSegment := cartesian.GetLine(borderLine.Anchor, intersectionPoint)
 				borders[starId] = newSegment
