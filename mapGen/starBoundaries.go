@@ -230,6 +230,7 @@ func getOrderedBoundaryPoints(boundaryLines []cartesian.Line2D) ([]cartesian.Vec
 	addedIndexes := make([]bool, len(boundaryLines))
 	addedIndexes[0] = true
 	for !nextPoint.Equals(boundaryLines[0].Anchor) {
+		fmt.Println(nextPoint)
 		nextIndex := -1
 		reverse := false
 
@@ -307,54 +308,73 @@ func addToCheck(row, col int, grid [][][]Star, cellToCheck [][]int) {
 
 }
 
-func updateBoundary(star, gStar Star, borders map[int]cartesian.Line2D) {
+func updateBoundary(star, gStar Star, borders map[int]cartesian.Line2D) error {
 
 	// get the bisecting line between star and gStar
 	bisectingLine := cartesian.GetBisectingLine(star.Vector2, gStar.Vector2)
-	// fmt.Println("Point 1 ", star.X, star.Y)
-	// fmt.Println("Point 2 ", gStar.X, gStar.Y)
-	// fmt.Println("Bisecting line Anchor", bisectingLine.Anchor.X, bisectingLine.Anchor.Y)
-	// fmt.Println("Bisecting line Direction", bisectingLine.Direction.X, bisectingLine.Direction.Y)
+
 	intersectionPoints := []cartesian.Vector2{}
 	for starId, borderLine := range borders {
-		// fmt.Println("-Borderline Anchor", borderLine.Anchor.X, borderLine.Anchor.Y)
-		// fmt.Println("-Borderline Direction", borderLine.Direction.X, borderLine.Direction.Y)
+
 		intersectionPoint, _, multiplier, err := cartesian.GetIntersectionPoint(bisectingLine, borderLine)
-		// fmt.Println("-Intersection point: ", intersectionPoint.X, intersectionPoint.Y, "multiplier", multiplier)
+
 		if err == nil && multiplier >= 0 && multiplier <= 1 {
-			// fmt.Println("--valid intersection")
-			if cartesian.IsSameSide(bisectingLine, borderLine.Anchor, star.Vector2) {
-				newSegment := cartesian.GetLine(borderLine.Anchor, intersectionPoint)
-				borders[starId] = newSegment
-			} else {
-				newSegment := cartesian.GetLine(intersectionPoint, borderLine.Anchor.Add(borderLine.Direction))
-				borders[starId] = newSegment
+
+			err := handleIntersection(bisectingLine, borderLine, star, intersectionPoint, borders, starId)
+			if err != nil {
+				return fmt.Errorf("issue in handling intersection with borderline %w", err)
 			}
-			// fmt.Println("Intersection Point", intersectionPoint)
 			intersectionPoints = append(intersectionPoints, intersectionPoint)
 		} else {
-			anchorSameSide := cartesian.IsSameSide(bisectingLine, star.Vector2, borderLine.Anchor)
-			endSameSide := cartesian.IsSameSide(bisectingLine, star.Vector2, borderLine.EndPoint())
-			if !anchorSameSide && !endSameSide {
-				delete(borders, starId)
-			}
+			handleNonIntersection(bisectingLine, star, borderLine, borders, starId)
 		}
 	}
 
 	if len(intersectionPoints) >= 2 {
 		borders[gStar.Id] = cartesian.GetLine(intersectionPoints[0], intersectionPoints[1])
 	}
-
+	return nil
 }
 
-// func setMoreCellsToBeChecked(cellX, cellY int, cellToCheck [][]int) int {
-// 	panic("unimplemented")
-// }
+func handleNonIntersection(bisectingLine cartesian.Line2D, star Star, borderLine cartesian.Line2D, borders map[int]cartesian.Line2D, starId int) {
+	anchorSameSide := cartesian.IsSameSide(bisectingLine, star.Vector2, borderLine.Anchor)
+	endSameSide := cartesian.IsSameSide(bisectingLine, star.Vector2, borderLine.EndPoint())
+	if anchorSameSide == cartesian.OPPOSITE_SIDE && endSameSide == cartesian.OPPOSITE_SIDE {
+		delete(borders, starId)
+	}
+}
 
-// func getCellToCheck(cellToCheck [][]int) (int, int) {
+func handleIntersection(bisectingLine cartesian.Line2D, borderLine cartesian.Line2D, star Star, intersectionPoint cartesian.Vector2, borders map[int]cartesian.Line2D, starId int) error {
+	anchorSameSide := cartesian.IsSameSide(bisectingLine, borderLine.Anchor, star.Vector2)
+	endPointSameSide := cartesian.IsSameSide(bisectingLine, borderLine.EndPoint(), star.Vector2)
 
-// 	panic("unimplemented")
-// }
+	if anchorSameSide == cartesian.POINT1_ON_LINE && endPointSameSide == cartesian.POINT1_ON_LINE {
+		// error condition. this should not be possible
+	} else if anchorSameSide == cartesian.POINT1_ON_LINE {
+		if endPointSameSide != cartesian.SAME_SIDE {
+			// the line needs to be deleted
+			delete(borders, starId)
+		}
+	} else if endPointSameSide == cartesian.POINT1_ON_LINE {
+		if anchorSameSide != cartesian.SAME_SIDE {
+			// the line needs to be deleted
+			delete(borders, starId)
+		}
+	} else if anchorSameSide == cartesian.SAME_SIDE {
+		// crop the line from anchor to intersection point
+
+		newSegment := cartesian.GetLine(borderLine.Anchor, intersectionPoint)
+		borders[starId] = newSegment
+
+	} else if endPointSameSide == cartesian.SAME_SIDE {
+		newSegment := cartesian.GetLine(intersectionPoint, borderLine.EndPoint())
+		borders[starId] = newSegment
+
+	} else {
+		return errors.New("Something unexpected is happening")
+	}
+	return nil
+}
 
 func getInitialBoundarySegments(maxX, maxY float64) map[int]cartesian.Line2D {
 

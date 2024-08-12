@@ -3,6 +3,7 @@ package mapGen_test
 import (
 	"testing"
 
+	"github.com/shreyghildiyal/spacemapGenerator/cartesian"
 	"github.com/shreyghildiyal/spacemapGenerator/mapGen"
 )
 
@@ -42,26 +43,40 @@ func TestBoundaryGeneration(t *testing.T) {
 
 func TestBoundaryGeneration2(t *testing.T) {
 
-	stars := []mapGen.Star{}
-
-	maxX := 800.0
-	maxY := 800.0
-
-	// starCount := 10
-
-	coords := [][]float64{
-		{100, 100},
-		{200, 200},
+	coords := []cartesian.Vector2{
+		{
+			X: 200,
+			Y: 200,
+		},
+		{
+			X: 100,
+			Y: 200,
+		},
+		{
+			X: 200,
+			Y: 100,
+		},
+		{
+			X: 300,
+			Y: 200,
+		},
+		{
+			X: 200,
+			Y: 300,
+		},
 	}
 
-	for i := 0; i < len(coords); i++ {
+	stars := []mapGen.Star{}
+
+	for i, coord := range coords {
 		star := mapGen.Star{
-			Id: i,
+			Vector2:       coord,
+			Id:            i,
+			ClusterId:     i,
+			IsClusterCore: true,
 		}
-		star.X = coords[i][0]
-		star.Y = coords[i][1]
 		stars = append(stars, star)
 	}
 
-	mapGen.AddStarBoundaries(stars, maxX, maxY)
+	mapGen.AddStarBoundaries(stars, 800, 800)
 }

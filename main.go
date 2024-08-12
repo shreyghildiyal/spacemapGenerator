@@ -109,8 +109,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 
 func main() {
 
-	testMode := "STARGEN"
-
 	ebiten.SetWindowSize(WIDTH, HEIGHT)
 	ebiten.SetWindowTitle("Hello, World!")
 
@@ -125,12 +123,13 @@ func main() {
 		A: 0,
 	})
 
-	if testMode == "STARGEN" {
+	testMode := "DEV"
+	// testMode := "ALL"
+
+	if testMode == "ALL" {
 		starGeneration(game)
-	} else if testMode == "BOUNDARYGEN" {
-		boundaryGeneration(game)
-	} else if testMode == "BOUNDARYGENTEST" {
-		boundaryGenTest(game)
+	} else if testMode == "DEV" {
+		dev(game)
 	}
 }
 
@@ -176,35 +175,51 @@ func boundaryGenTest(game Game) {
 	}
 }
 
-func boundaryGeneration(game Game) {
+func dev(game Game) {
 
-	starCount := 10
-	clusterCount := 9
-	maxStarCountRatio := 1.5
+	clusterCount := 5
 
-	stars, err := mapGen.InitMap(mapGen.MapGenConfigs{
-		MaxX:                    WIDTH,
-		MaxY:                    HEIGHT,
-		StarCount:               starCount,
-		ClusterCount:            clusterCount,
-		MaxStarCountRatio:       maxStarCountRatio,
-		StarRepulsionFactor:     5,
-		ClusterAttractionFactor: 0.50,
-		Iterations:              500,
-		InnerIterations:         50,
-		Seed:                    5,
-	})
-
-	if err != nil {
-		log.Fatal("There was an error in creating the stars", err.Error())
-		return
-	} else {
-		game.stars = stars
+	coords := []cartesian.Vector2{
+		{
+			X: 200,
+			Y: 200,
+		},
+		{
+			X: 100,
+			Y: 200,
+		},
+		{
+			X: 200,
+			Y: 100,
+		},
+		{
+			X: 300,
+			Y: 200,
+		},
+		{
+			X: 200,
+			Y: 300,
+		},
 	}
 
-	err = mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
+	stars := []mapGen.Star{}
+
+	for i, coord := range coords {
+		star := mapGen.Star{
+			Vector2:       coord,
+			Id:            i,
+			ClusterId:     i,
+			IsClusterCore: true,
+		}
+		stars = append(stars, star)
+	}
+
+	err := mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
+	fmt.Println(stars)
 	// err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
 	mapGen.AddDummyNeighbours(stars)
+
+	game.stars = stars
 
 	if err != nil {
 		log.Fatal("There was an error in creating star boundaries", err.Error())

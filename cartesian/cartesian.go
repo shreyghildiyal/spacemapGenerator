@@ -234,15 +234,28 @@ func GetUniquepoints(points []Vector2) []Vector2 {
 	return retVectors
 }
 
-func IsSameSide(line Line2D, point1, point2 Vector2) bool {
+type LineSide int
+
+const (
+	SAME_SIDE LineSide = iota
+	OPPOSITE_SIDE
+	POINT1_ON_LINE
+	POINT2_ON_LINE
+)
+
+func IsSameSide(line Line2D, point1, point2 Vector2) LineSide {
 
 	product1 := CrossProduct(AsVector3(point1.Subtract(line.Anchor)), AsVector3(line.Direction))
 	product2 := CrossProduct(AsVector3(point2.Subtract(line.Anchor)), AsVector3(line.Direction))
 
-	if product1.Z*product2.Z >= 0 {
-		return true
+	if product1.Z == 0 {
+		return POINT1_ON_LINE
+	} else if product2.Z == 0 {
+		return POINT2_ON_LINE
+	} else if product1.Z*product2.Z > 0 {
+		return SAME_SIDE
 	} else {
-		return false
+		return OPPOSITE_SIDE
 	}
 
 }
