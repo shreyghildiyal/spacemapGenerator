@@ -1,6 +1,7 @@
 package mapGen_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/shreyghildiyal/spacemapGenerator/cartesian"
@@ -64,6 +65,10 @@ func TestBoundaryGeneration2(t *testing.T) {
 			X: 200,
 			Y: 300,
 		},
+		{
+			X: 600,
+			Y: 300,
+		},
 	}
 
 	stars := []mapGen.Star{}
@@ -79,4 +84,27 @@ func TestBoundaryGeneration2(t *testing.T) {
 	}
 
 	mapGen.AddStarBoundaries(stars, 800, 800)
+
+	for _, star := range stars {
+		if len(star.BoundaryCorners) < 3 {
+			t.Errorf("The number of boundary corners for star with coords %f, %f is too low. Found %d", star.X, star.Y, len(star.BoundaryCorners))
+		}
+	}
+}
+
+func TestDummy(t *testing.T) {
+
+	lines := []cartesian.Line2D{
+		{Anchor: cartesian.Vector2{X: 101.14183839480401, Y: 800.0}, Direction: cartesian.Vector2{X: -101.14183839480401, Y: 0}},
+		{Anchor: cartesian.Vector2{X: 0, Y: 800}, Direction: cartesian.Vector2{X: 0, Y: -800}},
+		{Anchor: cartesian.Vector2{X: 281.1113102593359, Y: 0}, Direction: cartesian.Vector2{X: 84.48506640231335, Y: 491.5983285694044}},
+		{Anchor: cartesian.Vector2{X: 0, Y: 0}, Direction: cartesian.Vector2{X: 281.1113102593359, Y: 0}},
+		{Anchor: cartesian.Vector2{X: 365.59637666164923, Y: 491.5983285694044}, Direction: cartesian.Vector2{X: -264.4545382668452, Y: 308.4016714305956}},
+	}
+
+	for _, line := range lines {
+		fmt.Println("Anchor: ", line.Anchor)
+		fmt.Println("EndPoint: ", line.EndPoint())
+	}
+
 }

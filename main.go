@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -42,7 +43,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 func drawDomain(star mapGen.Star, g *Game, screen *ebiten.Image) {
 	cornerCount := len(star.BoundaryCorners)
 
-	fmt.Println("StarId", star.Id, "corner count", cornerCount)
+	// fmt.Println("StarId", star.Id, "corner count", cornerCount)
 	if cornerCount > 0 {
 
 		op := &ebiten.DrawTrianglesOptions{
@@ -81,6 +82,7 @@ func drawDomain(star mapGen.Star, g *Game, screen *ebiten.Image) {
 }
 
 func drawStar(star mapGen.Star, screen *ebiten.Image, g *Game, debugY int) {
+	// fmt.Println("Drawing star", star.Id)
 	if star.IsClusterCore {
 
 		vector.DrawFilledRect(screen, float32(star.X)-4, float32(star.Y)-4, 8, 8, g.clusterColours[star.ClusterId], true)
@@ -125,82 +127,37 @@ func main() {
 
 	testMode := "DEV"
 	// testMode := "ALL"
+	var err error = nil
 
 	if testMode == "ALL" {
-		starGeneration(game)
+		game, err = starGeneration(game)
 	} else if testMode == "DEV" {
-		dev(game)
+		game, err = dev(game)
 	}
-}
-
-func boundaryGenTest(game Game) {
-
-	star1 := mapGen.Star{
-		Vector2: cartesian.Vector2{
-			X: 100,
-			Y: 100,
-		},
-		Id:            0,
-		ClusterId:     0,
-		IsClusterCore: true,
-	}
-
-	game.stars = append(game.stars, star1)
-
-	star2 := mapGen.Star{
-		Vector2: cartesian.Vector2{
-			X: 200,
-			Y: 200,
-		},
-		Id:            1,
-		ClusterId:     1,
-		IsClusterCore: true,
-	}
-
-	game.stars = append(game.stars, star2)
-
-	err := mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
-	// err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
-	mapGen.AddDummyNeighbours(game.stars)
 
 	if err != nil {
-		log.Fatal("There was an error in creating star boundaries", err.Error())
-		return
+		log.Fatal(err)
 	}
-
-	game.clusterColours = mapGen.GetClusterColours(2)
 
 	if err := ebiten.RunGame(&game); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func dev(game Game) {
+func dev(game Game) (Game, error) {
 
-	clusterCount := 5
+	coords := []cartesian.Vector2{}
+	starCount := 10
 
-	coords := []cartesian.Vector2{
-		{
-			X: 200,
-			Y: 200,
-		},
-		{
-			X: 100,
-			Y: 200,
-		},
-		{
-			X: 200,
-			Y: 100,
-		},
-		{
-			X: 300,
-			Y: 200,
-		},
-		{
-			X: 200,
-			Y: 300,
-		},
+	var randGen *rand.Rand = rand.New(rand.NewSource(100))
+	for i := 0; i < starCount; i++ {
+		coords = append(coords, cartesian.Vector2{
+			X: randGen.Float64() * WIDTH,
+			Y: randGen.Float64() * HEIGHT,
+		})
 	}
+
+	clusterCount := len(coords)
 
 	stars := []mapGen.Star{}
 
@@ -213,27 +170,24 @@ func dev(game Game) {
 		}
 		stars = append(stars, star)
 	}
+	game.stars = stars
 
 	err := mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
-	fmt.Println(stars)
+	// fmt.Println(stars)
 	// err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
 	mapGen.AddDummyNeighbours(stars)
 
-	game.stars = stars
-
 	if err != nil {
 		log.Fatal("There was an error in creating star boundaries", err.Error())
-		return
+		return Game{}, fmt.Errorf("Error creating star boundaries %w", err)
 	}
 
 	game.clusterColours = mapGen.GetClusterColours(clusterCount)
 
-	if err := ebiten.RunGame(&game); err != nil {
-		log.Fatal(err)
-	}
+	return game, nil
 }
 
-func starGeneration(game Game) {
+func starGeneration(game Game) (Game, error) {
 	ebiten.SetWindowSize(WIDTH, HEIGHT)
 	ebiten.SetWindowTitle("Hello, World!")
 
@@ -256,7 +210,7 @@ func starGeneration(game Game) {
 
 	if err != nil {
 		log.Fatal("There was an error in creating the stars", err.Error())
-		return
+		return Game{}, fmt.Errorf("Error in star creation %w", err)
 	} else {
 		game.stars = stars
 	}
@@ -265,12 +219,15 @@ func starGeneration(game Game) {
 
 	if err != nil {
 		log.Fatal("There was an error in creating star boundaries", err.Error())
-		return
+		return Game{}, fmt.Errorf("Error in adding star boundaries %w", err)
 	}
 
 	game.clusterColours = mapGen.GetClusterColours(clusterCount)
 
-	if err := ebiten.RunGame(&game); err != nil {
-		log.Fatal(err)
-	}
+	return game, nil
 }
+
+// 	if err := ebiten.RunGame(&game); err != nil {
+// 		log.Fatal(err)
+// 	}
+// }

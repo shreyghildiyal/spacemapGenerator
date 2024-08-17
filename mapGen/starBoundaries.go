@@ -9,6 +9,8 @@ import (
 	"github.com/shreyghildiyal/spacemapGenerator/cartesian"
 )
 
+const SLACK float64 = 0.000000001
+
 // We are going to add some points around the star as the boundary to test our display
 func AddDummyStarBoundaries(stars []Star, maxX, maxY float64) error {
 
@@ -114,6 +116,7 @@ func AddStarBoundaries(stars []Star, maxX, maxY float64) error {
 	for i, _ := range stars {
 		wg.Add(1)
 		// go populateBorders(star, grid, maxX, maxY, &wg)
+		// fmt.Println("Adding boundaries for ", i)
 		populateBorders(i, stars, grid, maxX, maxY, &wg)
 	}
 
@@ -133,6 +136,7 @@ func populateBorders(starId int, stars []Star, grid [][][]Star, maxX, maxY float
 	} else {
 		fmt.Println(err.Error())
 	}
+	// fmt.Println(stars)
 	wg.Done()
 }
 
@@ -194,6 +198,7 @@ func neighbourMap(star Star, grid [][][]Star, maxX, maxY float64) ([]cartesian.V
 		// fmt.Println("boundary star ", star.Id, boundaryPoints)
 		return boundaryPoints, borders, nil
 	} else {
+		fmt.Println("Error in cleaning borders for star", star)
 		return []cartesian.Vector2{}, map[int]cartesian.Line2D{}, err
 	}
 
@@ -237,11 +242,12 @@ func getOrderedBoundaryPoints(boundaryLines []cartesian.Line2D) ([]cartesian.Vec
 		for i := 0; i < len(boundaryLines); i++ {
 			if !addedIndexes[i] {
 				line := boundaryLines[i]
-				if nextPoint.Equals(line.Anchor) {
+
+				if anchorEqual, _ := nextPoint.EqualsFuzzy(line.Anchor, SLACK); anchorEqual {
 					nextIndex = i
 					reverse = false
 					break
-				} else if nextPoint.Equals(line.EndPoint()) {
+				} else if endEqual, _ := nextPoint.EqualsFuzzy(line.EndPoint(), SLACK); endEqual {
 					nextIndex = i
 					reverse = true
 					break
@@ -249,6 +255,7 @@ func getOrderedBoundaryPoints(boundaryLines []cartesian.Line2D) ([]cartesian.Vec
 			}
 		}
 		if nextIndex == -1 {
+			fmt.Println("cant find next point", boundaryLines)
 			return nil, errors.New("issue in ordering the boundary points")
 		} else {
 			if reverse {
@@ -329,6 +336,8 @@ func updateBoundary(star, gStar Star, borders map[int]cartesian.Line2D) error {
 			handleNonIntersection(bisectingLine, star, borderLine, borders, starId)
 		}
 	}
+
+	intersectionPoints = cartesian.GetUniquepoints(intersectionPoints)
 
 	if len(intersectionPoints) >= 2 {
 		borders[gStar.Id] = cartesian.GetLine(intersectionPoints[0], intersectionPoints[1])

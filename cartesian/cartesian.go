@@ -282,3 +282,30 @@ func (line Line2D) EndPoint() Vector2 {
 func (vec Vector2) Equals(vec2 Vector2) bool {
 	return vec.X == vec2.X && vec.Y == vec2.Y
 }
+
+func (vec Vector2) EqualsFuzzy(vec2 Vector2, slack float64) (bool, error) {
+
+	xValid, err := slackEquals(vec.X, vec2.X, slack)
+	if err != nil {
+		return false, err
+	}
+	yValid, err := slackEquals(vec.Y, vec2.Y, slack)
+	if err != nil {
+		return false, err
+	}
+
+	return xValid && yValid, nil
+
+}
+
+func slackEquals(v1, v2 float64, slack float64) (bool, error) {
+	if slack < 0 {
+		return false, errors.New("the slack can not be less than 0")
+	} else {
+		if v1 > v2 {
+			return v1-v2 < slack, nil
+		} else {
+			return v2-v1 < slack, nil
+		}
+	}
+}

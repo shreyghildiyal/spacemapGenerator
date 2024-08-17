@@ -185,3 +185,20 @@ func TestGetBisectingLine(t *testing.T) {
 	}
 
 }
+
+func TestEqualsFuzzy(t *testing.T) {
+	const SLACK float64 = 0.00000000001
+	point1 := cartesian.Vector2{101.14183839480401, 491.5983285694044}
+	point2 := cartesian.Vector2{101.14183839480404, 491.5983285694044}
+
+	equal, err := point1.EqualsFuzzy(point2, SLACK)
+
+	if err != nil {
+		t.Errorf("There was an error in calculating the equality")
+	}
+
+	if !equal {
+		t.Errorf("The given points should have been equal")
+	}
+
+}
