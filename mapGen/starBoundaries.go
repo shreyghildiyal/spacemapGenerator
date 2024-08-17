@@ -109,7 +109,8 @@ func AddStarBoundaries(stars []Star, maxX, maxY float64) error {
 	// for this approach to give any advantage at all, we need the grid to be 6x6 atleast. More if possible.
 	// Maybe even clusterCount x clusterCount
 
-	grid := getPopulatedGrid(stars, maxX, maxY)
+	// grid := getPopulatedGrid(stars, maxX, maxY)
+	grid := getDummyPopulatedGrid(stars, maxX, maxY)
 
 	wg := sync.WaitGroup{}
 
@@ -123,6 +124,15 @@ func AddStarBoundaries(stars []Star, maxX, maxY float64) error {
 	wg.Wait()
 
 	return nil
+}
+
+func getDummyPopulatedGrid(stars []Star, maxX, maxY float64) [][][]Star {
+	grid := make([][][]Star, 1)
+	grid[0] = make([][]Star, 1)
+	grid[0][0] = []Star{}
+
+	grid[0][0] = append(grid[0][0], stars...)
+	return grid
 }
 
 func populateBorders(starId int, stars []Star, grid [][][]Star, maxX, maxY float64, wg *sync.WaitGroup) {
@@ -139,14 +149,6 @@ func populateBorders(starId int, stars []Star, grid [][][]Star, maxX, maxY float
 	// fmt.Println(stars)
 	wg.Done()
 }
-
-// func getStarsFromBorders(borders map[int]cartesian.Line, stars []Star) []Star {
-// 	selectedStars := []Star{}
-// 	for starId, _ := range borders {
-// 		selectedStars = append(selectedStars, stars[starId])
-// 	}
-// 	return selectedStars
-// }
 
 func getPopulatedGrid(stars []Star, maxX, maxY float64) [][][]Star {
 
@@ -331,6 +333,7 @@ func updateBoundary(star, gStar Star, borders map[int]cartesian.Line2D) error {
 	bisectingLine := cartesian.GetBisectingLine(star.Vector2, gStar.Vector2)
 
 	intersectionPoints := []cartesian.Vector2{}
+	deleteKeys := []int{}
 	for starId, borderLine := range borders {
 
 		intersectionPoint, _, multiplier, err := cartesian.GetIntersectionPoint(bisectingLine, borderLine)
@@ -343,8 +346,14 @@ func updateBoundary(star, gStar Star, borders map[int]cartesian.Line2D) error {
 			}
 			intersectionPoints = append(intersectionPoints, intersectionPoint)
 		} else {
-			handleNonIntersection(bisectingLine, star, borderLine, borders, starId)
+			if shouldDeleteBorderLine(bisectingLine, star, borderLine) {
+				deleteKeys = append(deleteKeys, starId)
+			}
 		}
+	}
+
+	for _, key := range deleteKeys {
+		delete(borders, key)
 	}
 
 	intersectionPoints = cartesian.GetUniquepoints(intersectionPoints)
@@ -355,12 +364,16 @@ func updateBoundary(star, gStar Star, borders map[int]cartesian.Line2D) error {
 	return nil
 }
 
-func handleNonIntersection(bisectingLine cartesian.Line2D, star Star, borderLine cartesian.Line2D, borders map[int]cartesian.Line2D, starId int) {
+func shouldDeleteBorderLine(bisectingLine cartesian.Line2D, star Star, borderLine cartesian.Line2D) bool {
 	anchorSameSide := cartesian.IsSameSide(bisectingLine, star.Vector2, borderLine.Anchor)
 	endSameSide := cartesian.IsSameSide(bisectingLine, star.Vector2, borderLine.EndPoint())
 	if anchorSameSide == cartesian.OPPOSITE_SIDE && endSameSide == cartesian.OPPOSITE_SIDE {
-		delete(borders, starId)
+		// delete(borders, starId)
+		return true
+	} else {
+		return false
 	}
+
 }
 
 func handleIntersection(bisectingLine cartesian.Line2D, borderLine cartesian.Line2D, star Star, intersectionPoint cartesian.Vector2, borders map[int]cartesian.Line2D, starId int) error {
