@@ -95,11 +95,10 @@ func TestBoundaryGeneration2(t *testing.T) {
 func TestDummy(t *testing.T) {
 
 	lines := []cartesian.Line2D{
-		{Anchor: cartesian.Vector2{X: 101.14183839480401, Y: 800.0}, Direction: cartesian.Vector2{X: -101.14183839480401, Y: 0}},
-		{Anchor: cartesian.Vector2{X: 0, Y: 800}, Direction: cartesian.Vector2{X: 0, Y: -800}},
-		{Anchor: cartesian.Vector2{X: 281.1113102593359, Y: 0}, Direction: cartesian.Vector2{X: 84.48506640231335, Y: 491.5983285694044}},
-		{Anchor: cartesian.Vector2{X: 0, Y: 0}, Direction: cartesian.Vector2{X: 281.1113102593359, Y: 0}},
-		{Anchor: cartesian.Vector2{X: 365.59637666164923, Y: 491.5983285694044}, Direction: cartesian.Vector2{X: -264.4545382668452, Y: 308.4016714305956}},
+		{Anchor: cartesian.Vector2{X: 282.2679177162924, Y: 800}, Direction: cartesian.Vector2{X: 66.48150595175082, Y: -75.09348346852596}},
+		{Anchor: cartesian.Vector2{X: 478.49607524586384, Y: 799.9999999999995}, Direction: cartesian.Vector2{X: 13.534359392069462, Y: -96.54210481923121}},
+		{Anchor: cartesian.Vector2{X: 478.49607524586384, Y: 799.9999999999995}, Direction: cartesian.Vector2{X: -196.22815752957138, Y: 4.547473508864641e-13}},
+		{Anchor: cartesian.Vector2{X: 348.7494236680432, Y: 724.906516531474}, Direction: cartesian.Vector2{X: 143.28101096989008, Y: -21.448621350705707}},
 	}
 
 	for _, line := range lines {
@@ -107,4 +106,13 @@ func TestDummy(t *testing.T) {
 		fmt.Println("EndPoint: ", line.EndPoint())
 	}
 
+	points, err := mapGen.GetOrderedBoundaryPoints(lines)
+
+	if err != nil {
+		t.Errorf("There was an error")
+	}
+
+	if len(points) != 4 {
+		t.Errorf("The number of points is incorrect. Expected %d found %d", 4, len(points))
+	}
 }

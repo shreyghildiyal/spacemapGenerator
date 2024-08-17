@@ -147,7 +147,7 @@ func main() {
 func dev(game Game) (Game, error) {
 
 	coords := []cartesian.Vector2{}
-	starCount := 10
+	starCount := 16
 
 	var randGen *rand.Rand = rand.New(rand.NewSource(100))
 	for i := 0; i < starCount; i++ {

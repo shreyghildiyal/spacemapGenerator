@@ -219,14 +219,14 @@ func cleanupBorders(borders map[int]cartesian.Line2D) ([]cartesian.Vector2, map[
 		}
 	}
 
-	boundaryPoints, err := getOrderedBoundaryPoints(boundaryLines)
+	boundaryPoints, err := GetOrderedBoundaryPoints(boundaryLines)
 
 	// boundaryPoints = cartesian.GetUniquepoints(boundaryPoints)
 
 	return boundaryPoints, borders, err
 }
 
-func getOrderedBoundaryPoints(boundaryLines []cartesian.Line2D) ([]cartesian.Vector2, error) {
+func GetOrderedBoundaryPoints(boundaryLines []cartesian.Line2D) ([]cartesian.Vector2, error) {
 
 	orderedPoints := []cartesian.Vector2{}
 
@@ -234,7 +234,7 @@ func getOrderedBoundaryPoints(boundaryLines []cartesian.Line2D) ([]cartesian.Vec
 	nextPoint := boundaryLines[0].EndPoint()
 	addedIndexes := make([]bool, len(boundaryLines))
 	addedIndexes[0] = true
-	for !nextPoint.Equals(boundaryLines[0].Anchor) {
+	for {
 		fmt.Println(nextPoint)
 		nextIndex := -1
 		reverse := false
@@ -268,9 +268,19 @@ func getOrderedBoundaryPoints(boundaryLines []cartesian.Line2D) ([]cartesian.Vec
 			}
 			addedIndexes[nextIndex] = true
 		}
+
+		if v, err := nextPoint.EqualsFuzzy(boundaryLines[0].Anchor, SLACK); v || err != nil {
+			break
+		}
 	}
 
-	return orderedPoints, nil
+	if len(orderedPoints) == len(boundaryLines) {
+		return orderedPoints, nil
+	} else {
+		fmt.Println(boundaryLines)
+		return []cartesian.Vector2{}, errors.New("the point ordering algo broke off too soon")
+	}
+
 }
 
 func getCellsToCheck(star Star, maxX float64, maxY float64, grid [][][]Star) [][]int {
