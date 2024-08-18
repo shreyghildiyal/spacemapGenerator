@@ -126,6 +126,9 @@ func AddStarBoundaries(stars []Star, maxX, maxY float64) error {
 	return nil
 }
 
+/*
+This is a dummy function that needs to be used since the proper function is not working correctly it seems.
+*/
 func getDummyPopulatedGrid(stars []Star, maxX, maxY float64) [][][]Star {
 	grid := make([][][]Star, 1)
 	grid[0] = make([][]Star, 1)
@@ -150,6 +153,8 @@ func populateBorders(starId int, stars []Star, grid [][][]Star, maxX, maxY float
 	wg.Done()
 }
 
+// This method is not working properly. A dummy method is being used right now.
+// TODO: Fix this
 func getPopulatedGrid(stars []Star, maxX, maxY float64) [][][]Star {
 
 	gridSide := math.Floor(math.Sqrt(float64(len(stars))))
