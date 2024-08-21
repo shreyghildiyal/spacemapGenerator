@@ -7,119 +7,28 @@ import (
 	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
-	"github.com/hajimehoshi/ebiten/v2/vector"
+
 	"github.com/shreyghildiyal/spacemapGenerator/cartesian"
+	"github.com/shreyghildiyal/spacemapGenerator/game"
 	"github.com/shreyghildiyal/spacemapGenerator/mapGen"
 )
 
-type Game struct {
-	stars          []mapGen.Star
-	clusterColours []color.RGBA
-	dummyImage     *ebiten.Image
-}
-
-func (g *Game) Update() error {
-	return nil
-}
-
-func (g *Game) Draw(screen *ebiten.Image) {
-	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("Hello, World!, %d, %d\n", screen.Bounds().Max.X, screen.Bounds().Max.Y), 0, 0)
-
-	debugY := 20
-
-	for _, star := range g.stars {
-
-		drawDomain(star, g, screen)
-
-		drawNeighbourLines(star, g.stars, screen)
-
-		drawStar(star, screen, g, debugY)
-
-	}
-
-}
-
-func drawDomain(star mapGen.Star, g *Game, screen *ebiten.Image) {
-	cornerCount := len(star.BoundaryCorners)
-
-	// fmt.Println("StarId", star.Id, "corner count", cornerCount)
-	if cornerCount > 0 {
-
-		op := &ebiten.DrawTrianglesOptions{
-			Blend: ebiten.Blend{},
-		}
-
-		vertices := []ebiten.Vertex{}
-		indices := []uint16{}
-
-		for i := 0; i < cornerCount; i++ {
-			vertex := ebiten.Vertex{
-				DstX:   float32(star.BoundaryCorners[i].X),
-				DstY:   float32(star.BoundaryCorners[i].Y),
-				ColorR: float32(g.clusterColours[star.ClusterId].R) / 255,
-				ColorG: float32(g.clusterColours[star.ClusterId].G) / 255,
-				ColorB: float32(g.clusterColours[star.ClusterId].B) / 255,
-				ColorA: float32(g.clusterColours[star.ClusterId].A) / 255,
-			}
-
-			vertices = append(vertices, vertex)
-
-			indices = append(indices, uint16((i)%cornerCount), uint16((i+1)%cornerCount), uint16(cornerCount))
-		}
-
-		vertices = append(vertices, ebiten.Vertex{
-			DstX:   float32(star.X),
-			DstY:   float32(star.Y),
-			ColorR: float32(g.clusterColours[star.ClusterId].R) / 255,
-			ColorG: float32(g.clusterColours[star.ClusterId].G) / 255,
-			ColorB: float32(g.clusterColours[star.ClusterId].B) / 255,
-			ColorA: float32(g.clusterColours[star.ClusterId].A) / 255,
-		})
-
-		screen.DrawTriangles(vertices, indices, g.dummyImage, op)
-	}
-}
-
-func drawStar(star mapGen.Star, screen *ebiten.Image, g *Game, debugY int) {
-	// fmt.Println("Drawing star", star.Id)
-	if star.IsClusterCore {
-
-		vector.DrawFilledRect(screen, float32(star.X)-4, float32(star.Y)-4, 8, 8, g.clusterColours[star.ClusterId], true)
-
-		debugY += 20
-	} else {
-		vector.DrawFilledCircle(screen, float32(star.X), float32(star.Y), 2, g.clusterColours[star.ClusterId], true)
-	}
-}
-
-func drawNeighbourLines(star mapGen.Star, stars []mapGen.Star, screen *ebiten.Image) {
-	for _, neighbourId := range star.Neighbours {
-		if star.Id < neighbourId {
-			nStar := stars[neighbourId]
-			vector.StrokeLine(screen, float32(nStar.X), float32(nStar.Y), float32(star.X), float32(star.Y), 1, color.White, false)
-		}
-
-	}
-}
-
 const HEIGHT = 800
 const WIDTH = 800
-
-func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return WIDTH, HEIGHT
-}
 
 func main() {
 
 	ebiten.SetWindowSize(WIDTH, HEIGHT)
 	ebiten.SetWindowTitle("Hello, World!")
 
-	game := Game{}
+	game := game.Game{
+		Height: HEIGHT,
+		Width:  WIDTH,
+	}
 
-	game.dummyImage = ebiten.NewImage(3, 3)
+	game.DummyImage = ebiten.NewImage(3, 3)
 	// game.dummyImage.Fill(color.White)
-	game.dummyImage.Fill(color.RGBA{
+	game.DummyImage.Fill(color.RGBA{
 		R: 255,
 		G: 255,
 		B: 255,
@@ -145,7 +54,7 @@ func main() {
 	}
 }
 
-func dev(game Game) (Game, error) {
+func dev(gameObj game.Game) (game.Game, error) {
 
 	coords := []cartesian.Vector2{}
 	starCount := 16
@@ -171,24 +80,24 @@ func dev(game Game) (Game, error) {
 		}
 		stars = append(stars, star)
 	}
-	game.stars = stars
+	gameObj.Stars = stars
 
-	err := mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
+	err := mapGen.AddStarBoundaries(gameObj.Stars, WIDTH, HEIGHT)
 	// fmt.Println(stars)
 	// err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
 	mapGen.AddDummyNeighbours(stars)
 
 	if err != nil {
 		log.Fatal("There was an error in creating star boundaries", err.Error())
-		return Game{}, fmt.Errorf("Error creating star boundaries %w", err)
+		return game.Game{}, fmt.Errorf("Error creating star boundaries %w", err)
 	}
 
-	game.clusterColours = mapGen.GetClusterColours(clusterCount)
+	gameObj.ClusterColours = mapGen.GetClusterColours(clusterCount)
 
-	return game, nil
+	return gameObj, nil
 }
 
-func starGeneration(game Game) (Game, error) {
+func starGeneration(gameObj game.Game) (game.Game, error) {
 	ebiten.SetWindowSize(WIDTH, HEIGHT)
 	ebiten.SetWindowTitle("Hello, World!")
 
@@ -211,26 +120,22 @@ func starGeneration(game Game) (Game, error) {
 
 	if err != nil {
 		log.Fatal("There was an error in creating the stars", err.Error())
-		return Game{}, fmt.Errorf("Error in star creation %w", err)
+
+		return game.Game{}, fmt.Errorf("Error in star creation %w", err)
 	} else {
-		game.stars = stars
+		gameObj.Stars = stars
 	}
 
-	err = mapGen.AddStarBoundaries(game.stars, WIDTH, HEIGHT)
+	err = mapGen.AddStarBoundaries(gameObj.Stars, WIDTH, HEIGHT)
 
 	if err != nil {
 		log.Fatal("There was an error in creating star boundaries", err.Error())
-		return Game{}, fmt.Errorf("Error in adding star boundaries %w", err)
+		return game.Game{}, fmt.Errorf("Error in adding star boundaries %w", err)
 	}
 
-	game.clusterColours = mapGen.GetClusterColours(clusterCount)
+	gameObj.ClusterColours = mapGen.GetClusterColours(clusterCount)
 
-	mapGen.AddDummyNeighbours(game.stars)
+	mapGen.AddDummyNeighbours(gameObj.Stars)
 
-	return game, nil
+	return gameObj, nil
 }
-
-// 	if err := ebiten.RunGame(&game); err != nil {
-// 		log.Fatal(err)
-// 	}
-// }
