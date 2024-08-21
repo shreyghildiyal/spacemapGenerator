@@ -3,6 +3,7 @@ package mapGen
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math"
 	"sync"
 
@@ -10,6 +11,8 @@ import (
 )
 
 const SLACK float64 = 0.000000001
+
+var logger = log.Default()
 
 // We are going to add some points around the star as the boundary to test our display
 func AddDummyStarBoundaries(stars []Star, maxX, maxY float64) error {
@@ -41,50 +44,6 @@ func AddDummyStarBoundaries(stars []Star, maxX, maxY float64) error {
 	return nil
 }
 
-func AddDummyNeighbours(stars []Star) {
-	addedStars := []int{}     // index in stars of the star
-	remainingStars := []int{} // index in stars of the star
-
-	distanceGrid := make([][]float64, len(stars))
-	for i := range stars {
-		distanceGrid[i] = make([]float64, len(stars))
-	}
-
-	for i := 0; i < len(stars); i++ {
-		for j := 0; j < len(stars); j++ {
-			distanceGrid[i][j] = getDist(stars[i], stars[j]) // distance using the index within stars slice
-		}
-	}
-
-	addedStars = append(addedStars, 0) // the first star in stars is where we start
-	for i := 1; i < len(stars); i++ {
-		remainingStars = append(remainingStars, i) // all other indexes are 'remaining'
-	}
-
-	for len(remainingStars) > 0 {
-		bestRemIndex := 0
-		bestStarIndex := remainingStars[bestRemIndex]
-		bestDistance, bestFromStarIndex := getMinDist(bestStarIndex, addedStars, distanceGrid)
-
-		for remIndex := 1; remIndex < len(remainingStars); remIndex++ {
-			starIndex := remainingStars[remIndex]
-			dist, fromStarIndex := getMinDist(starIndex, addedStars, distanceGrid)
-			if dist < bestDistance {
-				bestDistance = dist
-				bestRemIndex = remIndex
-				bestStarIndex = starIndex
-				bestFromStarIndex = fromStarIndex
-			}
-		}
-
-		remainingStars = append(remainingStars[:bestRemIndex], remainingStars[bestRemIndex+1:]...)
-		addedStars = append(addedStars, bestStarIndex)
-		stars[bestFromStarIndex].Neighbours = append(stars[bestFromStarIndex].Neighbours, stars[bestStarIndex])
-		stars[bestStarIndex].Neighbours = append(stars[bestStarIndex].Neighbours, stars[bestFromStarIndex])
-	}
-	fmt.Println("Neighbours have been added. There should now be a path from every star to every other star")
-}
-
 func getMinDist(bestStarIndex int, addedStars []int, distanceGrid [][]float64) (float64, int) {
 
 	bestFromStar := 0
@@ -114,11 +73,11 @@ func AddStarBoundaries(stars []Star, maxX, maxY float64) error {
 
 	wg := sync.WaitGroup{}
 
-	for i, _ := range stars {
+	for _, star := range stars {
 		wg.Add(1)
 		// go populateBorders(star, grid, maxX, maxY, &wg)
 		// fmt.Println("Adding boundaries for ", i)
-		populateBorders(i, stars, grid, maxX, maxY, &wg)
+		populateBorders(star.Id, stars, grid, maxX, maxY, &wg)
 	}
 
 	wg.Wait()
@@ -142,7 +101,7 @@ func populateBorders(starId int, stars []Star, grid [][][]Star, maxX, maxY float
 	boundaryCorners, borders, err := neighbourMap(stars[starId], grid, maxX, maxY)
 
 	if err == nil {
-		fmt.Println(starId, "Boundary corner count", len(boundaryCorners), stars[starId].X, stars[starId].Y)
+		// logger.Println(starId, "Boundary corner count", len(boundaryCorners), stars[starId].X, stars[starId].Y)
 		stars[starId].BoundaryCorners = boundaryCorners
 		stars[starId].Borders = borders
 
@@ -197,15 +156,20 @@ func neighbourMap(star Star, grid [][][]Star, maxX, maxY float64) ([]cartesian.V
 		}
 	}
 
-	// fmt.Println("Anchor", borderLine.Anchor)
-	// fmt.Println("Endpoint", borderLine.EndPoint())
-	// fmt.Println(boundaryPoints)
 	boundaryPoints, borders, err := cleanupBorders(borders)
+	defer func() {
+		if r := recover(); r != nil {
+
+			// fmt.Println()
+			logger.Println("There was a panic in the cleanup function for star", star.Id, r)
+
+		}
+	}()
 	if err == nil {
-		// fmt.Println("boundary star ", star.Id, boundaryPoints)
+
 		return boundaryPoints, borders, nil
 	} else {
-		fmt.Println("Error in cleaning borders for star", star)
+		logger.Println("Error in cleaning borders for star", star)
 		return []cartesian.Vector2{}, map[int]cartesian.Line2D{}, err
 	}
 
@@ -242,7 +206,7 @@ func GetOrderedBoundaryPoints(boundaryLines []cartesian.Line2D) ([]cartesian.Vec
 	addedIndexes := make([]bool, len(boundaryLines))
 	addedIndexes[0] = true
 	for {
-		fmt.Println(nextPoint)
+		// logger.Println(nextPoint)
 		nextIndex := -1
 		reverse := false
 
@@ -262,7 +226,7 @@ func GetOrderedBoundaryPoints(boundaryLines []cartesian.Line2D) ([]cartesian.Vec
 			}
 		}
 		if nextIndex == -1 {
-			fmt.Println("cant find next point", boundaryLines)
+			logger.Println("cant find next point", boundaryLines)
 			return nil, errors.New("issue in ordering the boundary points")
 		} else {
 			if reverse {
@@ -284,7 +248,7 @@ func GetOrderedBoundaryPoints(boundaryLines []cartesian.Line2D) ([]cartesian.Vec
 	if len(orderedPoints) == len(boundaryLines) {
 		return orderedPoints, nil
 	} else {
-		fmt.Println(boundaryLines)
+		// logger.Println(boundaryLines)
 		return []cartesian.Vector2{}, errors.New("the point ordering algo broke off too soon")
 	}
 

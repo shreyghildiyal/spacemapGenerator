@@ -32,7 +32,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		drawDomain(star, g, screen)
 
-		drawNeighbourLines(star, screen)
+		drawNeighbourLines(star, g.stars, screen)
 
 		drawStar(star, screen, g, debugY)
 
@@ -93,10 +93,11 @@ func drawStar(star mapGen.Star, screen *ebiten.Image, g *Game, debugY int) {
 	}
 }
 
-func drawNeighbourLines(star mapGen.Star, screen *ebiten.Image) {
-	for i := range star.Neighbours {
-		if star.Id < star.Neighbours[i].Id {
-			vector.StrokeLine(screen, float32(star.Neighbours[i].X), float32(star.Neighbours[i].Y), float32(star.X), float32(star.Y), 1, color.White, false)
+func drawNeighbourLines(star mapGen.Star, stars []mapGen.Star, screen *ebiten.Image) {
+	for _, neighbourId := range star.Neighbours {
+		if star.Id < neighbourId {
+			nStar := stars[neighbourId]
+			vector.StrokeLine(screen, float32(nStar.X), float32(nStar.Y), float32(star.X), float32(star.Y), 1, color.White, false)
 		}
 
 	}
@@ -191,8 +192,8 @@ func starGeneration(game Game) (Game, error) {
 	ebiten.SetWindowSize(WIDTH, HEIGHT)
 	ebiten.SetWindowTitle("Hello, World!")
 
-	starCount := 100
-	clusterCount := 10
+	starCount := 1000
+	clusterCount := 30
 	maxStarCountRatio := 1.5
 
 	stars, err := mapGen.InitMap(mapGen.MapGenConfigs{
@@ -201,7 +202,7 @@ func starGeneration(game Game) (Game, error) {
 		StarCount:               starCount,
 		ClusterCount:            clusterCount,
 		MaxStarCountRatio:       maxStarCountRatio,
-		StarRepulsionFactor:     5,
+		StarRepulsionFactor:     50,
 		ClusterAttractionFactor: 0.50,
 		Iterations:              500,
 		InnerIterations:         50,
@@ -223,6 +224,8 @@ func starGeneration(game Game) (Game, error) {
 	}
 
 	game.clusterColours = mapGen.GetClusterColours(clusterCount)
+
+	mapGen.AddDummyNeighbours(game.stars)
 
 	return game, nil
 }

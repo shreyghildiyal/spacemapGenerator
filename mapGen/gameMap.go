@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 
 	"math/rand"
 
@@ -55,20 +56,21 @@ func InitMap(configs MapGenConfigs) ([]Star, error) {
 			stars[i].IsClusterCore = true
 		}
 
-		distanceGrid := getDistanceGrid(stars)
+		// distanceGrid := getDistanceGrid(stars)
 		// movestars away from each other
-		moveStarsAwayFromEachOther(stars, distanceGrid, configs.StarRepulsionFactor)
-		moveStarsAwayFromEdges(stars, configs.StarRepulsionFactor, configs.MaxX, configs.MaxY)
+		forceStarRepulsion(stars, configs.StarRepulsionFactor, configs.MaxX, configs.MaxY)
+		// moveStarsAwayFromEachOther(stars, distanceGrid, configs.StarRepulsionFactor)
+		// moveStarsAwayFromEdges(stars, configs.StarRepulsionFactor, configs.MaxX, configs.MaxY)
 		for i := 0; i < configs.InnerIterations; i++ {
 
 			// assign stars to clusters
-			updateStarClusters(stars, distanceGrid, configs.ClusterCount)
+			updateStarClusters(stars, configs.ClusterCount)
 
 			// move clusterCore
 			moveClusterCore(stars, configs.ClusterCount)
 		}
 
-		updateStarClusters(stars, distanceGrid, configs.ClusterCount)
+		updateStarClusters(stars, configs.ClusterCount)
 
 		clusterStarCounts := getClusterStarCounts(stars)
 
@@ -93,6 +95,61 @@ func InitMap(configs MapGenConfigs) ([]Star, error) {
 
 	}
 	return bestStars, nil
+}
+
+func forceStarRepulsion(stars []Star, repulsionFactor, maxX, maxY float64) {
+
+	wg := sync.WaitGroup{}
+
+	repulsionVectors := make([]cartesian.Vector2, len(stars))
+
+	for i := range stars {
+		wg.Add(1)
+		go func() {
+			repulsionVectors[i] = getStarRepulsionVector(i, stars, repulsionFactor, maxX, maxY)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
+	for i := range stars {
+		stars[i].Vector2 = stars[i].Vector2.Add(repulsionVectors[i])
+	}
+
+}
+
+func getStarRepulsionVector(starId int, stars []Star, repulsionFactor, maxX, maxY float64) cartesian.Vector2 {
+
+	repulsionVector := cartesian.Vector2{
+		X: 0,
+		Y: 0,
+	}
+
+	repulsionVector = repulsionVector.Add(getRepulsionFromEdges(starId, stars, repulsionFactor, maxX, maxY))
+
+	for repStarId := range stars {
+		if repStarId != starId {
+			repulsionVector = repulsionVector.Add(getStarStarRepulsion(starId, repStarId, stars, repulsionFactor))
+		}
+
+	}
+
+	return repulsionVector
+
+}
+
+func getStarStarRepulsion(starId, repStarId int, stars []Star, repulsionFactor float64) cartesian.Vector2 {
+	repVector := cartesian.Vector2{}
+
+	dist := getDist(stars[starId], stars[repStarId])
+
+	// repulsionMagnitude := repulsionFactor / (dist * dist)
+
+	repVector.X = repulsionFactor * (stars[starId].X - stars[repStarId].X) / (dist * dist * dist)
+	repVector.Y = repulsionFactor * (stars[starId].Y - stars[repStarId].Y) / (dist * dist * dist)
+
+	return repVector
+
 }
 
 func getMaxClusterStarCount(clusterStarCounts []int) int {
@@ -154,6 +211,49 @@ func getClusterStarCounts(stars []Star) []int {
 		counts[star.ClusterId]++
 	}
 	return counts
+}
+
+func getRepulsionFromEdges(starId int, stars []Star, repulsion, maxX, maxY float64) cartesian.Vector2 {
+	var dx float64 = 0
+	var dy float64 = 0
+
+	if stars[starId].X <= 0 {
+		stars[starId].X = 1
+	}
+	if stars[starId].X >= maxX {
+		stars[starId].X = maxX - 1
+	}
+	if stars[starId].Y <= 0 {
+		stars[starId].Y = 1
+	}
+	if stars[starId].Y >= maxY {
+		stars[starId].Y = maxY - 1
+	}
+
+	// repel from left
+
+	dx += 1 / (stars[starId].X * stars[starId].X)
+
+	// repel from right
+
+	dist := maxX - stars[starId].X
+	dx -= 1 / (dist * dist)
+
+	//repel from top
+
+	dy += 1 / (stars[starId].Y * stars[starId].Y)
+
+	// repel from bottom
+
+	dist = maxY - stars[starId].Y
+	dy -= 1 / (dist * dist)
+
+	// stars[starId].X += dx * repulsion
+	// stars[starId].Y += dy * repulsion
+	return cartesian.Vector2{
+		X: dx * repulsion,
+		Y: dy * repulsion,
+	}
 }
 
 func moveStarsAwayFromEdges(stars []Star, repulsion, maxX, maxY float64) {
@@ -240,24 +340,25 @@ func moveStarsAwayFromEachOther(stars []Star, distanceGrid [][]float64, repulsio
 
 }
 
-func updateStarClusters(stars []Star, distanceGrid [][]float64, clusterCount int) {
+func updateStarClusters(stars []Star, clusterCount int) {
 
 	for i := range stars {
 		if i < clusterCount {
 			stars[i].ClusterId = i
 		} else {
-			closestClusterCoreId := getClosestClusterCoreId(stars[i], distanceGrid, stars[:clusterCount])
+			closestClusterCoreId := getClosestClusterCoreId(stars[i], stars[:clusterCount])
 			stars[i].ClusterId = closestClusterCoreId
 		}
 	}
 }
 
-func getClosestClusterCoreId(star Star, distanceGrid [][]float64, clusterCores []Star) int {
+func getClosestClusterCoreId(star Star, clusterCores []Star) int {
 	clusterId := clusterCores[0].Id
-	minDist := distanceGrid[star.Id][0]
+	// minDist := distanceGrid[star.Id][0]
+	minDist := getDist(star, clusterCores[0])
 
 	for _, coreStar := range clusterCores {
-		dist := distanceGrid[star.Id][coreStar.Id]
+		dist := getDist(star, coreStar)
 		if dist < minDist {
 			minDist = dist
 			clusterId = coreStar.Id
