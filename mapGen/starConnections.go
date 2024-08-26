@@ -138,5 +138,7 @@ func connectClusters(stars []Star) {
 }
 
 func getDistSquared(loc1, loc2 cartesian.Vector2) float64 {
-	return 0
+
+	return (loc1.X-loc2.X)*(loc1.X-loc2.X) + (loc1.Y-loc2.Y)*(loc1.Y-loc2.Y)
+
 }

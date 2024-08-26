@@ -35,8 +35,8 @@ func main() {
 		A: 0,
 	})
 
-	testMode := "DEV"
-	// testMode := "ALL"
+	// testMode := "DEV"
+	testMode := "ALL"
 	var err error = nil
 
 	if testMode == "ALL" {
@@ -57,9 +57,9 @@ func main() {
 func dev(gameObj game.Game) (game.Game, error) {
 
 	coords := []cartesian.Vector2{}
-	starCount := 16
+	starCount := 10
 
-	var randGen *rand.Rand = rand.New(rand.NewSource(100))
+	var randGen *rand.Rand = rand.New(rand.NewSource(5))
 	for i := 0; i < starCount; i++ {
 		coords = append(coords, cartesian.Vector2{
 			X: randGen.Float64() * WIDTH,
@@ -75,7 +75,7 @@ func dev(gameObj game.Game) (game.Game, error) {
 		star := mapGen.Star{
 			Vector2:       coord,
 			Id:            i,
-			ClusterId:     i,
+			ClusterId:     0,
 			IsClusterCore: true,
 		}
 		stars = append(stars, star)
@@ -85,7 +85,7 @@ func dev(gameObj game.Game) (game.Game, error) {
 	err := mapGen.AddStarBoundaries(gameObj.Stars, WIDTH, HEIGHT)
 	// fmt.Println(stars)
 	// err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
-	mapGen.AddDummyNeighbours(stars)
+	mapGen.AddStarNeighbours(stars)
 
 	if err != nil {
 		log.Fatal("There was an error in creating star boundaries", err.Error())
@@ -135,7 +135,8 @@ func starGeneration(gameObj game.Game) (game.Game, error) {
 
 	gameObj.ClusterColours = mapGen.GetClusterColours(clusterCount)
 
-	mapGen.AddDummyNeighbours(gameObj.Stars)
+	// mapGen.AddDummyNeighbours(gameObj.Stars)
+	mapGen.AddStarNeighbours(stars)
 
 	return gameObj, nil
 }
