@@ -13,8 +13,8 @@ import (
 	"github.com/shreyghildiyal/spacemapGenerator/mapGen"
 )
 
-const HEIGHT = 800
-const WIDTH = 800
+const HEIGHT = 1000
+const WIDTH = 1000
 
 func main() {
 
@@ -115,7 +115,8 @@ func starGeneration(gameObj game.Game) (game.Game, error) {
 		ClusterAttractionFactor: 0.50,
 		Iterations:              500,
 		InnerIterations:         50,
-		Seed:                    5,
+		Seed:                    1,
+		MinStarDistance:         10,
 	})
 
 	if err != nil {
