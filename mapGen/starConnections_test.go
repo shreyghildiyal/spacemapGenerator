@@ -41,9 +41,15 @@ func TestNeighbours(t *testing.T) {
 	// gameObj.Stars = stars
 
 	err := mapGen.AddStarBoundaries(stars, WIDTH, HEIGHT)
+
+	neighbourConfig := mapGen.NeighbourConfigs{
+		MinInClusterConnectionRatio: 0.5,
+		MinClusterConnectionRatio:   0.1,
+	}
+	mapGen.AddStarNeighbours(stars, neighbourConfig)
 	// fmt.Println(stars)
 	// err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
-	mapGen.AddStarNeighbours(stars)
+	// mapGen.AddStarNeighbours(stars)
 
 	if err != nil {
 		log.Fatal("There was an error in creating star boundaries", err.Error())

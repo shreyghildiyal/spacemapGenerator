@@ -85,7 +85,11 @@ func dev(gameObj game.Game) (game.Game, error) {
 	err := mapGen.AddStarBoundaries(gameObj.Stars, WIDTH, HEIGHT)
 	// fmt.Println(stars)
 	// err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
-	mapGen.AddStarNeighbours(stars)
+	neighbourConfig := mapGen.NeighbourConfigs{
+		MinInClusterConnectionRatio: 0.5,
+		MinClusterConnectionRatio:   0.1,
+	}
+	mapGen.AddStarNeighbours(stars, neighbourConfig)
 
 	if err != nil {
 		log.Fatal("There was an error in creating star boundaries", err.Error())
@@ -106,17 +110,17 @@ func starGeneration(gameObj game.Game) (game.Game, error) {
 	maxStarCountRatio := 1.5
 
 	stars, err := mapGen.InitMap(mapGen.MapGenConfigs{
-		MaxX:                    WIDTH,
-		MaxY:                    HEIGHT,
-		StarCount:               starCount,
-		ClusterCount:            clusterCount,
-		MaxStarCountRatio:       maxStarCountRatio,
-		StarRepulsionFactor:     50,
-		ClusterAttractionFactor: 0.50,
-		Iterations:              500,
-		InnerIterations:         50,
-		Seed:                    1,
-		MinStarDistance:         10,
+		MaxX:              WIDTH,
+		MaxY:              HEIGHT,
+		StarCount:         starCount,
+		ClusterCount:      clusterCount,
+		MaxStarCountRatio: maxStarCountRatio,
+		// StarRepulsionFactor:     50,
+		// ClusterAttractionFactor: 0.50,
+		Iterations:      500,
+		InnerIterations: 50,
+		Seed:            1,
+		MinStarDistance: 20,
 	})
 
 	if err != nil {
@@ -136,8 +140,14 @@ func starGeneration(gameObj game.Game) (game.Game, error) {
 
 	gameObj.ClusterColours = mapGen.GetClusterColours(clusterCount)
 
+	fmt.Println("Starting adding neighbours")
 	// mapGen.AddDummyNeighbours(gameObj.Stars)
-	mapGen.AddStarNeighbours(stars)
+	neighbourConfig := mapGen.NeighbourConfigs{
+		MinInClusterConnectionRatio: 0.1,
+		MinClusterConnectionRatio:   0.1,
+		MaxInClusterConnectionRatio: 0.7,
+	}
+	mapGen.AddStarNeighbours(stars, neighbourConfig)
 
 	return gameObj, nil
 }

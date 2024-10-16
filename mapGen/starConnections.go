@@ -2,6 +2,7 @@ package mapGen
 
 import (
 	"fmt"
+	"math/rand"
 
 	"github.com/shreyghildiyal/spacemapGenerator/cartesian"
 )
@@ -51,14 +52,15 @@ func AddDummyNeighbours(stars []Star) {
 }
 
 type NeighbourConfigs struct {
-	InClusterConnectionRatio float32 // for each star in a cluster the number of connections to other cluster stars it has divided by the number of such possible connections
-	ClusterConnectionRatio   float32 // for each cluster, number of connections to stars in other clusters/ number of such connections possible
+	MinInClusterConnectionRatio float64 // for each star in a cluster the number of connections to other cluster stars it has divided by the number of such possible connections
+	MinClusterConnectionRatio   float64 // for each cluster, number of connections to stars in other clusters/ number of such connections possible
+	MaxInClusterConnectionRatio float64
 }
 
-func AddStarNeighbours(stars []Star) {
+func AddStarNeighbours(stars []Star, configs NeighbourConfigs) {
 	clusterStarIds := getClusterStarIds(stars)
 	for _, clusterStarIds := range clusterStarIds {
-		connectClusterStars(stars, clusterStarIds)
+		connectClusterStars(stars, clusterStarIds, configs.MinInClusterConnectionRatio, configs.MaxInClusterConnectionRatio)
 	}
 
 	connectClusters(stars)
@@ -76,12 +78,66 @@ func getClusterStarIds(stars []Star) map[int][]int {
 	return clusterStars
 }
 
-func connectClusterStars(stars []Star, clusterStarIds []int) {
+func connectClusterStars(stars []Star, clusterStarIds []int, minConnectionRatio, maxConnectionRatio float64) {
 	// create a minimum spanning tree
 
 	createMinSpanningTree(clusterStarIds, stars)
 
 	// use a probability system to use the remaining borders
+	logger.Printf("Created min tree for cluster %d", stars[clusterStarIds[0]].ClusterId)
+	for _, starId := range clusterStarIds {
+		createNeighbourConnections(starId, stars, minConnectionRatio, maxConnectionRatio)
+	}
+}
+
+func createNeighbourConnections(starId int, stars []Star, minConnectionRatio, maxConnectionRatio float64) {
+
+	actualIntendedRatio := minConnectionRatio + rand.Float64()*(maxConnectionRatio-minConnectionRatio)
+
+	// neighbourCount := 0
+
+	candidates := []int{}
+	candidateValid := map[int]bool{}
+	for cId := range stars[starId].Borders {
+		if stars[cId].ClusterId == stars[starId].ClusterId {
+			candidates = append(candidates, cId)
+			candidateValid[cId] = true
+		}
+	}
+
+	// logger.Println("Created candidates arrays")
+	for _, nId := range stars[starId].Neighbours {
+		if _, ok := candidateValid[nId]; !ok {
+			candidateValid[nId] = false
+		}
+	}
+	// logger.Println("Updated existing neighbours")
+
+	intendedBorderCount := actualIntendedRatio * float64(len(candidates))
+
+	for len(stars[starId].Neighbours) < int(intendedBorderCount) {
+		logger.Printf("Neighbour Count: %d, intendedCount: %f, candidatesCount: %d", len(stars[starId].Neighbours), intendedBorderCount, len(candidates))
+		selectedIndex := rand.Int() % (len(stars[starId].Borders) - len(stars[starId].Neighbours))
+		logger.Printf("Selected Index: %d", selectedIndex)
+		foundvalidCount := 0
+
+		for i, cId := range candidates {
+			if valid, ok := candidateValid[cId]; ok && valid {
+
+				if foundvalidCount >= selectedIndex {
+
+					stars[starId].Neighbours = append(stars[starId].Neighbours, cId)
+					stars[cId].Neighbours = append(stars[cId].Neighbours, starId)
+					candidateValid[i] = false
+
+					// do the connection
+				} else {
+					foundvalidCount++
+				}
+			}
+		}
+	}
+
 }
 
 func createMinSpanningTree(clusterStarIds []int, stars []Star) {

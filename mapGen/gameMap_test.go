@@ -15,14 +15,14 @@ func TestInitMap(t *testing.T) {
 	const WIDTH = 800
 
 	stars, err := mapGen.InitMap(mapGen.MapGenConfigs{
-		MaxX:                    WIDTH - 50,
-		MaxY:                    HEIGHT - 50,
-		StarCount:               starCount,
-		ClusterCount:            clusterCount,
-		StarRepulsionFactor:     1,
-		ClusterAttractionFactor: 0.50,
-		Iterations:              1,
-		Seed:                    5,
+		MaxX:         WIDTH - 50,
+		MaxY:         HEIGHT - 50,
+		StarCount:    starCount,
+		ClusterCount: clusterCount,
+		// StarRepulsionFactor:     1,
+		// ClusterAttractionFactor: 0.50,
+		Iterations: 1,
+		Seed:       5,
 	})
 
 	if err != nil {

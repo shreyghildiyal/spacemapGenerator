@@ -19,17 +19,17 @@ type Segment struct {
 // }
 
 type MapGenConfigs struct {
-	MaxX                    float64
-	MaxY                    float64
-	StarCount               int
-	ClusterCount            int
-	MaxStarCountRatio       float64
-	StarRepulsionFactor     float64
-	ClusterAttractionFactor float64
-	Iterations              int
-	Seed                    int64
-	InnerIterations         int
-	MinStarDistance         float64
+	MaxX              float64
+	MaxY              float64
+	StarCount         int
+	ClusterCount      int
+	MaxStarCountRatio float64
+	// StarRepulsionFactor     float64
+	// ClusterAttractionFactor float64
+	Iterations      int
+	Seed            int64
+	InnerIterations int
+	MinStarDistance float64
 }
 
 var randGen *rand.Rand
