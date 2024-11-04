@@ -5,6 +5,19 @@ import (
 	"math/rand"
 )
 
+type StarConnection struct {
+	FromStar int
+	ToStar   int
+}
+
+type Cluster struct {
+	Id                int
+	Stars             []int
+	NeighbourClusters []int
+	Boundaries        map[int]int // key: starId within cluster, val: starId in another cluster
+
+}
+
 func GetClusterColours(clusterCount int) []color.RGBA {
 	colors := []color.RGBA{}
 

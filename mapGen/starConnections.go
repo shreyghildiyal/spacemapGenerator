@@ -54,18 +54,22 @@ func AddDummyNeighbours(stars []Star) {
 type NeighbourConfigs struct {
 	MinInClusterConnectionRatio float64 // for each star in a cluster the number of connections to other cluster stars it has divided by the number of such possible connections
 	MinClusterConnectionRatio   float64 // for each cluster, number of connections to stars in other clusters/ number of such connections possible
+	MaxClusterConnectionRatio   float64 // for each cluster, number of connections to stars in other clusters/ number of such connections possible
 	MaxInClusterConnectionRatio float64
 }
 
 func AddStarNeighbours(stars []Star, configs NeighbourConfigs) {
-	clusterStarIds := getClusterStarIds(stars)
-	for _, clusterStarIds := range clusterStarIds {
+	clusterStarsIds := getClusterStarIds(stars)
+	for _, clusterStarIds := range clusterStarsIds {
 		connectClusterStars(stars, clusterStarIds, configs.MinInClusterConnectionRatio, configs.MaxInClusterConnectionRatio)
 	}
 
-	connectClusters(stars)
+	connectClusters(stars, configs.MinClusterConnectionRatio, configs.MaxClusterConnectionRatio)
 }
 
+/*
+Gives a map of clusterId:list(Id of star in cluster)
+*/
 func getClusterStarIds(stars []Star) map[int][]int {
 	clusterStars := map[int][]int{}
 	for _, star := range stars {
@@ -189,8 +193,75 @@ func getNextConnection(addedStars map[int]bool, remainingStars map[int]bool, sta
 
 }
 
-func connectClusters(stars []Star) {
+func connectClusters(stars []Star, minConnectionRatio, maxConnectionRatio float64) {
+	// cluster potential borders
 
+	potentialConnections := map[int]map[int][]StarConnection{}
+	for _, star := range stars {
+		if _, ok := potentialConnections[star.ClusterId]; !ok {
+			potentialConnections[star.ClusterId] = map[int][]StarConnection{}
+		}
+		for otherStarId, _ := range star.Borders {
+			if stars[otherStarId].ClusterId > star.ClusterId {
+				if _, ok := potentialConnections[star.ClusterId][stars[otherStarId].ClusterId]; !ok {
+					potentialConnections[star.ClusterId][stars[otherStarId].ClusterId] = []StarConnection{}
+				}
+				conn := StarConnection{
+					FromStar: star.Id,
+					ToStar:   otherStarId,
+				}
+				potentialConnections[star.ClusterId][stars[otherStarId].ClusterId] = append(potentialConnections[star.ClusterId][stars[otherStarId].ClusterId], conn)
+			}
+		}
+	}
+
+	fmt.Println("Generated map for potential connections")
+
+	// now we have all the possible connections that can be made from one cluster to any other
+
+	for clusterId := range potentialConnections {
+		fmt.Println("creating inter cluster connections from ", clusterId)
+		for toClusterId, potConns := range potentialConnections[clusterId] {
+			fmt.Println("generating connections to cluster", toClusterId)
+			actualRatio := minConnectionRatio + (maxConnectionRatio-minConnectionRatio)*rand.Float64()
+			desiredCount := float64(len(potConns)) * actualRatio
+			if desiredCount < 1 {
+				desiredCount = 1
+			}
+			fmt.Println("desired count", desiredCount)
+			createdConnections := 0
+			validitySlice := make([]bool, len(potConns))
+			for i := range validitySlice {
+				validitySlice[i] = true
+			}
+
+			for createdConnections < int(desiredCount) {
+				index := rand.Intn(len(potConns) - createdConnections)
+				fmt.Println("selected index", index, len(potConns)-createdConnections)
+				conn := getValidItem(potConns, index, validitySlice)
+				validitySlice[index] = false
+				stars[conn.FromStar].Neighbours = append(stars[conn.FromStar].Neighbours, conn.ToStar)
+				stars[conn.ToStar].Neighbours = append(stars[conn.ToStar].Neighbours, conn.FromStar)
+				createdConnections++
+			}
+		}
+	}
+}
+
+func getValidItem(connections []StarConnection, index int, validitySlice []bool) StarConnection {
+	fmt.Println("trying to get desired item")
+	foundValid := 0
+
+	for i, conn := range connections {
+		if validitySlice[i] {
+			if foundValid < index {
+				foundValid++
+			} else {
+				return conn
+			}
+		}
+	}
+	return connections[0]
 }
 
 func getDistSquared(loc1, loc2 cartesian.Vector2) float64 {

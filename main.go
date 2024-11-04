@@ -86,8 +86,10 @@ func dev(gameObj game.Game) (game.Game, error) {
 	// fmt.Println(stars)
 	// err = mapGen.AddDummyStarBoundaries(game.stars, WIDTH, HEIGHT)
 	neighbourConfig := mapGen.NeighbourConfigs{
-		MinInClusterConnectionRatio: 0.5,
+		MinInClusterConnectionRatio: 0.1,
+		MaxInClusterConnectionRatio: 0.7,
 		MinClusterConnectionRatio:   0.1,
+		MaxClusterConnectionRatio:   0.2,
 	}
 	mapGen.AddStarNeighbours(stars, neighbourConfig)
 
@@ -144,8 +146,9 @@ func starGeneration(gameObj game.Game) (game.Game, error) {
 	// mapGen.AddDummyNeighbours(gameObj.Stars)
 	neighbourConfig := mapGen.NeighbourConfigs{
 		MinInClusterConnectionRatio: 0.1,
-		MinClusterConnectionRatio:   0.1,
 		MaxInClusterConnectionRatio: 0.7,
+		MinClusterConnectionRatio:   0.1,
+		MaxClusterConnectionRatio:   0.2,
 	}
 	mapGen.AddStarNeighbours(stars, neighbourConfig)
 
