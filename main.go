@@ -151,6 +151,9 @@ func starGeneration(gameObj game.Game) (game.Game, error) {
 		MaxClusterConnectionRatio:   0.2,
 	}
 	mapGen.AddStarNeighbours(stars, neighbourConfig)
+	systemGenConfig := mapGen.SystemGenConfig{}
+	mapGen.GenerateStarSystems(stars, systemGenConfig)
+	// mapGen.AssignEmpires()
 
 	return gameObj, nil
 }
